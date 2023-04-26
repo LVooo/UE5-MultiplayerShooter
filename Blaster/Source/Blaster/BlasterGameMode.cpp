@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BlasterGameMode.h"
-#include "BlasterCharacter.h"
+#include "Character/BlasterCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 ABlasterGameMode::ABlasterGameMode()
