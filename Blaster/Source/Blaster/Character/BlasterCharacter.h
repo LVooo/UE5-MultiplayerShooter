@@ -10,32 +10,27 @@ UCLASS(config=Game)
 class ABlasterCharacter : public ACharacter
 {
 	GENERATED_BODY()
-
-	/*/** Camera boom positioning the camera behind the character #1#
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
-
-	/** Follow camera #1#
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* FollowCamera;*/
 public:
 	ABlasterCharacter();
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	// 注册可复制的变量，网络同步系统自动调用
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	// 构造combat component，将其中的character实例化
+	virtual void PostInitializeComponents() override;
 
-	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
 
 protected:
-
+	virtual void BeginPlay() override;
+	
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Turn(float Rate);
 	void LookUp(float Rate);
+	void EquipButtonPressed();
 
-protected:
-	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// End of APawn interface
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -46,7 +41,18 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	class UWidgetComponent* OverheadWidget;
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
-	class UWidgetComponent* OverheadNameWidget;*/
+
+	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon) // 委托函数，设置该属性可在服务器复制到的多个客户端之间同步，但不会在服务端上自己调用
+	class AWeapon* OverlappingWeapon;
+
+	UFUNCTION()
+	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
+
+	UPROPERTY(VisibleAnywhere)
+	class UCombatComponent* Combat;
+	
+public:
+	// 为OverlappingWeapon赋值
+	void SetOverlappingWeapon(AWeapon* Weapon);
 };
 
