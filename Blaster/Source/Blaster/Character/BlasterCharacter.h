@@ -30,7 +30,9 @@ protected:
 	void Turn(float Rate);
 	void LookUp(float Rate);
 	void EquipButtonPressed();
-
+	void CrouchButtonPressed();
+	void AimButtonPressed();
+	void AimButtonReleased();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -51,8 +53,15 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UCombatComponent* Combat;
 	
+	UFUNCTION(Server, Reliable)
+	void ServerEquipButtonPressed(); // 服务器调用，处理客户端上装备武器的事件
+	
 public:
 	// 为OverlappingWeapon赋值
 	void SetOverlappingWeapon(AWeapon* Weapon);
+	// 判断是否已经装备武器
+	bool IsWeaponEquipped();
+	// 判断是否瞄准
+	bool IsAiming();
 };
 
