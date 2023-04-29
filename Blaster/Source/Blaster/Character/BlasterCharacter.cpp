@@ -60,6 +60,10 @@ ABlasterCharacter::ABlasterCharacter()
 
 	// 设置Can Crouch
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+
+	// 解决角色阻挡摄像头问题
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 }
 
 void ABlasterCharacter::BeginPlay()

@@ -36,8 +36,8 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	// Offset Yaw for Strafing
 	FRotator AnimRotation = BlasterCharacter->GetBaseAimRotation();
-	FRotator MovementRoration = UKismetMathLibrary::MakeRotFromX(BlasterCharacter->GetVelocity());
-	FRotator DelataRot = UKismetMathLibrary::NormalizedDeltaRotator(MovementRoration, AnimRotation);
+	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(BlasterCharacter->GetVelocity());
+	FRotator DelataRot = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AnimRotation);
 	DeltaRotation = FMath::RInterpTo(DeltaRotation, DelataRot, DeltaTime, 6.f);
 	YawOffset = DeltaRotation.Yaw;
 
