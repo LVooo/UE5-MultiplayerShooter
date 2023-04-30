@@ -11,6 +11,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ABlasterCharacter::ABlasterCharacter()
@@ -71,10 +72,11 @@ void ABlasterCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
-void ABlasterCharacter::Tick(float DeltaSeconds)
+void ABlasterCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaSeconds);
-	
+	Super::Tick(DeltaTime);
+
+	AimOffset(DeltaTime);
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -177,6 +179,41 @@ void ABlasterCharacter::AimButtonReleased()
 	}
 }
 
+void ABlasterCharacter::AimOffset(float DeltaTime)
+{
+	// 如果没有装备武器则退出
+	if (Combat && Combat->EquippedWeapon == nullptr) return;
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	float Speed = Velocity.Size();
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+
+	// 如果是站立状态并不在空中
+	if (Speed == 0.f && !bIsInAir)
+	{
+		FRotator CurrentRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		FRotator DeletaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentRotation, StartingAimRotation); // 这里两个参数位置不同会造成相反方向
+		AO_Yaw = DeletaAimRotation.Yaw;
+		bUseControllerRotationYaw = false;
+	}
+	// 站定前的跑动或跳跃状态为开始时的旋转位置
+	if (Speed > 0.f || bIsInAir)
+	{
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		AO_Yaw = 0.f; // 需要重置为0
+		bUseControllerRotationYaw = true;
+	}
+	AO_Pitch = GetBaseAimRotation().Pitch;
+	// 修正Pitch在服务端和客户端间同步的问题
+	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	{
+		// 映射pitch从[270, 360) -> [-90, 0)
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
+	}
+}
+
 void ABlasterCharacter::MoveForward(float Value)
 {
 	if ((Controller != nullptr) && (Value != 0.0f))
@@ -246,4 +283,10 @@ bool ABlasterCharacter::IsWeaponEquipped()
 bool ABlasterCharacter::IsAiming()
 {
 	return (Combat && Combat->bAiming);
+}
+
+AWeapon* ABlasterCharacter::GetEquippedWeapon()
+{
+	if (Combat == nullptr) return nullptr;
+	return Combat->EquippedWeapon;
 }

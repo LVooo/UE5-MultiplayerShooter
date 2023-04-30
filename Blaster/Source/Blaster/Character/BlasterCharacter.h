@@ -12,7 +12,7 @@ class ABlasterCharacter : public ACharacter
 	GENERATED_BODY()
 public:
 	ABlasterCharacter();
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// 注册可复制的变量，网络同步系统自动调用
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -33,6 +33,7 @@ protected:
 	void CrouchButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
+	void AimOffset(float DeltaTime); // 站立状态时的瞄准
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -55,6 +56,11 @@ private:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed(); // 服务器调用，处理客户端上装备武器的事件
+
+	// 瞄准偏移
+	float AO_Yaw;
+	float AO_Pitch;
+	FRotator StartingAimRotation;
 	
 public:
 	// 为OverlappingWeapon赋值
@@ -63,5 +69,8 @@ public:
 	bool IsWeaponEquipped();
 	// 判断是否瞄准
 	bool IsAiming();
+	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
+	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
+	AWeapon* GetEquippedWeapon();
 };
 
