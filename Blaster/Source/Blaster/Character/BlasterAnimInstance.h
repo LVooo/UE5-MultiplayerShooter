@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "BlasterAnimInstance.generated.h"
 
 /**
@@ -58,4 +59,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category=Movement, meta=(AllowPrivateAccess="true"))
 	FTransform LeftHandTransform; // 固定左手连接武器的位置
+
+	UPROPERTY(BlueprintReadOnly, Category=Movement, meta=(AllowPrivateAccess="true"))
+	ETurningInPlace TurningInPlace;
 };

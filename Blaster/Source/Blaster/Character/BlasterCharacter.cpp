@@ -65,6 +65,16 @@ ABlasterCharacter::ABlasterCharacter()
 	// 解决角色阻挡摄像头问题
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+	// 提高角色旋转速度 (Z轴)
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 850.f);
+
+	// 初始化站立状态下旋转角度超过90度后的身体旋转
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+
+	// 设置网络更新频率以确保分发到其他客户端上的帧数
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -100,7 +110,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABlasterCharacter::MoveForward);
@@ -188,13 +198,18 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	float Speed = Velocity.Size();
 	bool bIsInAir = GetCharacterMovement()->IsFalling();
 
-	// 如果是站立状态并不在空中
+	// 站立状态 并且不在空中
 	if (Speed == 0.f && !bIsInAir)
 	{
 		FRotator CurrentRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		FRotator DeletaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentRotation, StartingAimRotation); // 这里两个参数位置不同会造成相反方向
 		AO_Yaw = DeletaAimRotation.Yaw;
-		bUseControllerRotationYaw = false;
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
+		{
+			InterpAO_Yaw = AO_Yaw;
+		}
+		bUseControllerRotationYaw = true;
+		TurnInPlace(DeltaTime);
 	}
 	// 站定前的跑动或跳跃状态为开始时的旋转位置
 	if (Speed > 0.f || bIsInAir)
@@ -202,6 +217,7 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		AO_Yaw = 0.f; // 需要重置为0
 		bUseControllerRotationYaw = true;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	}
 	AO_Pitch = GetBaseAimRotation().Pitch;
 	// 修正Pitch在服务端和客户端间同步的问题
@@ -211,6 +227,40 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FVector2D InRange(270.f, 360.f);
 		FVector2D OutRange(-90.f, 0.f);
 		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
+	}
+}
+
+void ABlasterCharacter::Jump()
+{
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Super::Jump();
+	}
+}
+
+void ABlasterCharacter::TurnInPlace(float DeltaTime)
+{
+	if (AO_Yaw > 90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Right;
+	}
+	else if (AO_Yaw < -90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.f, DeltaTime, 4.f);
+		AO_Yaw = InterpAO_Yaw;
+		if (FMath::Abs(AO_Yaw) < 15.f)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		}
 	}
 }
 

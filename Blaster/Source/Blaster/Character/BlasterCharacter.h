@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "GameFramework/Character.h"
 #include "BlasterCharacter.generated.h"
 
@@ -34,6 +35,7 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime); // 站立状态时的瞄准
+	virtual void Jump() override;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -59,8 +61,13 @@ private:
 
 	// 瞄准偏移
 	float AO_Yaw;
+	float InterpAO_Yaw;
 	float AO_Pitch;
 	FRotator StartingAimRotation;
+
+	// 旋转偏移
+	ETurningInPlace TurningInPlace;
+	void TurnInPlace(float DeltaTime);
 	
 public:
 	// 为OverlappingWeapon赋值
@@ -72,5 +79,6 @@ public:
 	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
 	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
 	AWeapon* GetEquippedWeapon();
+	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 };
 
