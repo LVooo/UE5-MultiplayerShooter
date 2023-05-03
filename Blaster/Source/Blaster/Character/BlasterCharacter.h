@@ -19,6 +19,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// 构造combat component，将其中的character实例化
 	virtual void PostInitializeComponents() override;
+	void PlayFireMontage(bool bAiming);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
@@ -36,6 +37,8 @@ protected:
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime); // 站立状态时的瞄准
 	virtual void Jump() override;
+	void FireButtonPressed();
+	void FireButtonReleased();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -65,9 +68,12 @@ private:
 	float AO_Pitch;
 	FRotator StartingAimRotation;
 
-	// 旋转偏移
+	// 旋转偏移枚举
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	class UAnimMontage* FireWeaponMontage;
 	
 public:
 	// 为OverlappingWeapon赋值
