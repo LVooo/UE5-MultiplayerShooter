@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
+#define TRACE_LENGTH 80000.f // 射击射线长度
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -50,6 +51,14 @@ private:
 	float AimWalkSpeed;
 
 	bool bFireButtonPressed;
+
+	UFUNCTION(Server, Reliable)
+	void ServerFire(); // 服务器执行
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastFire(); // 服务器分发到各客户端
+
+	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
 public:	
 		

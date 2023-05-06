@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="..\..\Blaster.uproject" />
+    <Filter Include="Source">
+      <UniqueIdentifier>{F31BBDD1-B3E8-3BCC-9652-680E16935819}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Source\Blaster.Target.cs">
+      <Filter>Source</Filter>
+    </None>
+    <None Include="..\..\Source\BlasterEditor.Target.cs">
+      <Filter>Source</Filter>
+    </None>
+    <Filter Include="Config">
+      <UniqueIdentifier>{FA535FFB-25E1-3D20-B416-52F9BE21E06E}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Config\DefaultEditor.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultEditorPerProjectUserSettings.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultEngine.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultGame.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultInput.ini">
+      <Filter>Config</Filter>
+    </None>
+    <Filter Include="Config\HoloLens">
+      <UniqueIdentifier>{4C8DD267-CDE7-336F-8602-F5F485D22BAB}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Config\HoloLens\HoloLensEngine.ini">
+      <Filter>Config\HoloLens</Filter>
+    </None>
+    <Filter Include="Plugins">
+      <UniqueIdentifier>{BB38096A-B391-30DC-A0D4-4F3EA6B44507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\MultiplayerSessions">
+      <UniqueIdentifier>{B376FBB0-9029-37B4-9E5C-F55FC20DD6CD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\MultiplayerSessions\Source">
+      <UniqueIdentifier>{CAE7E189-351A-3AEF-AA65-9181E027D3DC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\MultiplayerSessions\Source\MultiplayerSessions">
+      <UniqueIdentifier>{A1318B81-C725-3B17-85AD-D8AD905147BF}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\MultiplayerSessions.Build.cs">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions</Filter>
+    </None>
+    <Filter Include="Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private">
+      <UniqueIdentifier>{AEFBA6C3-EAEC-3E6A-BF0E-6FC82FC81BDA}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private\Menu.cpp">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private\MultiplayerSessions.cpp">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private\MultiplayerSessionsSubsystem.cpp">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Private</Filter>
+    </ClCompile>
+    <Filter Include="Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public">
+      <UniqueIdentifier>{B8A815AB-71EA-30D3-AAE7-E5C007BDC21C}</UniqueIdentifier>
+    </Filter>
+    <ClInclude Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public\Menu.h">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public\MultiplayerSessions.h">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public\MultiplayerSessionsSubsystem.h">
+      <Filter>Plugins\MultiplayerSessions\Source\MultiplayerSessions\Public</Filter>
+    </ClInclude>
+    <None Include="..\..\Plugins\MultiplayerSessions\MultiplayerSessions.uplugin">
+      <Filter>Plugins\MultiplayerSessions</Filter>
+    </None>
+    <Filter Include="Plugins\MultiplayerSessions\Resources">
+      <UniqueIdentifier>{309C2CD4-0086-329B-99DB-BDFA765BCE16}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Plugins\MultiplayerSessions\Resources\Icon128.png">
+      <Filter>Plugins\MultiplayerSessions\Resources</Filter>
+    </None>
+    <Filter Include="Source\Blaster">
+      <UniqueIdentifier>{EE28103A-87BB-3197-B9AF-A82E99E2013A}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Source\Blaster\Blaster.Build.cs">
+      <Filter>Source\Blaster</Filter>
+    </None>
+    <ClCompile Include="..\..\Source\Blaster\Blaster.cpp">
+      <Filter>Source\Blaster</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Blaster.h">
+      <Filter>Source\Blaster</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\BlasterGameMode.cpp">
+      <Filter>Source\Blaster</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\BlasterGameMode.h">
+      <Filter>Source\Blaster</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\BlasterComponents">
+      <UniqueIdentifier>{8F3737CC-73AB-372F-9807-2117AE8F86AA}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\BlasterComponents\CombatComponent.cpp">
+      <Filter>Source\Blaster\BlasterComponents</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\BlasterComponents\CombatComponent.h">
+      <Filter>Source\Blaster\BlasterComponents</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\BlasterTypes">
+      <UniqueIdentifier>{69A66E39-133C-39E2-987D-EBC64A18AEF7}</UniqueIdentifier>
+    </Filter>
+    <ClInclude Include="..\..\Source\Blaster\BlasterTypes\TurningInPlace.h">
+      <Filter>Source\Blaster\BlasterTypes</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\Character">
+      <UniqueIdentifier>{DE1BD488-6B84-307A-9BE6-F714F6EBF278}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\Character\BlasterAnimInstance.cpp">
+      <Filter>Source\Blaster\Character</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Character\BlasterAnimInstance.h">
+      <Filter>Source\Blaster\Character</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\Character\BlasterCharacter.cpp">
+      <Filter>Source\Blaster\Character</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Character\BlasterCharacter.h">
+      <Filter>Source\Blaster\Character</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\GameMode">
+      <UniqueIdentifier>{3EA2507D-5ADC-33F4-AB1D-9213C5883358}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\GameMode\LobbyGameMode.cpp">
+      <Filter>Source\Blaster\GameMode</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\GameMode\LobbyGameMode.h">
+      <Filter>Source\Blaster\GameMode</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\HUD">
+      <UniqueIdentifier>{B4AACAF6-499E-3F03-B768-0F749DE5B65B}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\HUD\OverHeadWidget.cpp">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\HUD\OverHeadWidget.h">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\Weapon">
+      <UniqueIdentifier>{816D2633-5BC4-3359-ADC4-F063AA87E942}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\Weapon\Projectile.cpp">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Weapon\Projectile.h">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\Weapon\ProjectileMyWeapon.cpp">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Weapon\ProjectileMyWeapon.h">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\Weapon\Weapon.cpp">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Weapon\Weapon.h">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
