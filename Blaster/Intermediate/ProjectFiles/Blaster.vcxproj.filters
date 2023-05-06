@@ -158,10 +158,10 @@
     <ClInclude Include="..\..\Source\Blaster\Weapon\Projectile.h">
       <Filter>Source\Blaster\Weapon</Filter>
     </ClInclude>
-    <ClCompile Include="..\..\Source\Blaster\Weapon\ProjectileMyWeapon.cpp">
+    <ClCompile Include="..\..\Source\Blaster\Weapon\ProjectileWeapon.cpp">
       <Filter>Source\Blaster\Weapon</Filter>
     </ClCompile>
-    <ClInclude Include="..\..\Source\Blaster\Weapon\ProjectileMyWeapon.h">
+    <ClInclude Include="..\..\Source\Blaster\Weapon\ProjectileWeapon.h">
       <Filter>Source\Blaster\Weapon</Filter>
     </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\Weapon\Weapon.cpp">
