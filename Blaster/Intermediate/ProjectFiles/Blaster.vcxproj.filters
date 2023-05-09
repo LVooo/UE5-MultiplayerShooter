@@ -152,6 +152,12 @@
     <Filter Include="Source\Blaster\Weapon">
       <UniqueIdentifier>{816D2633-5BC4-3359-ADC4-F063AA87E942}</UniqueIdentifier>
     </Filter>
+    <ClCompile Include="..\..\Source\Blaster\Weapon\Casing.cpp">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Weapon\Casing.h">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\Weapon\Projectile.cpp">
       <Filter>Source\Blaster\Weapon</Filter>
     </ClCompile>

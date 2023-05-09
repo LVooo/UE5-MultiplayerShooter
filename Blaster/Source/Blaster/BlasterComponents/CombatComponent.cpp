@@ -112,9 +112,11 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		if (!TraceHitResult.bBlockingHit)
 		{
 			TraceHitResult.ImpactPoint = End;
+			HitTarget = TraceHitResult.ImpactPoint;
 		}
 		else
 		{
+			HitTarget = TraceHitResult.ImpactPoint;
 			DrawDebugSphere(
 				GetWorld(),
 				TraceHitResult.ImpactPoint,
@@ -132,7 +134,7 @@ void UCombatComponent::MulticastFire_Implementation()
 	if (Character)
 	{
 		Character->PlayFireMontage(bAiming);
-		EquippedWeapon->Fire();
+		EquippedWeapon->Fire(HitTarget);
 	}
 }
 
@@ -163,6 +165,8 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
 	// 设置武器所有权，目的是为了正确的碰撞检测和事件处理（每个 Actor 都应有一个 Owner）
+	//! 曾因没有设置owner导致projectile weapon找不到owner返回空指针debug了一会儿
+	EquippedWeapon->SetOwner(Character);
 	// 自定义了Replicated还有回调函数EquippedWeapon->SetOwner(Character);
 	// 装备武器后禁用人物方向跟随移动方向
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;

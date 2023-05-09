@@ -60,6 +60,7 @@ private:
 
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
+	FVector HitTarget;
 public:	
 		
 };
