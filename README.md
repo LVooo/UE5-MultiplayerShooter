@@ -104,6 +104,7 @@ Tilde符号即~，可以用作运行游戏时打开控制台的快捷键；能�
 使用Notify Sound Sync用来创建同步声音事件，用于处理网络同步音频问题。  
 同时给动画帧数上添加音效时需注意按总长规律添加，否则重复循环播放会造成音画不同步问题。
 
+
 ## 三、武器开火
 ### 1. 武器开火类别
 Projectile vs Hitscan：  
@@ -139,3 +140,7 @@ Projectile vs Hitscan：
 同样需要设置Hit Event（蓝图中的命名与C++中不同）
 
 弹壳掉落声音：设置音效attenuation回声的inner radius为200（播放全部声音），falloff distance为1500指声音传播的距离，当距离超过该值时，声音的音量和衰减程度会逐渐减小，直至听不到为止。
+
+
+## 四、武器瞄准机制
+### 1. HUD和player controller
