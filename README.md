@@ -208,4 +208,76 @@ HUD类中存在`DrawHUD()`函数，会被每帧调用，在这里画十字瞄准
 
 ### 11. 自动开火
 在Combat组件类中设置开始和结束的开火时间函数，对于非自动开火武器使用bCanFire控制开火间隔时间（FireDelay）；  
-在武器类中加入FireDelay，bAutomatic等变量，
+在武器类中加入FireDelay，bAutomatic等变量
+
+
+## 五、人物生命和状态
+### 1. 游戏框架
+- GameMode：仅在服务器上
+- GameState：在服务器和所有客户端上
+- PlayerState：在服务器和所有客户端上
+- PlayerController：服务器和自己的客户端
+- Pawn：服务器和所有的客户端
+- HUD/Widgets：仅在自己的客户端上
+
+![GameFramework](./pictures/GameFramework.png)
+在服务器和客户端上的分布
+![GameFramework2](./pictures/GameFramework2.png)
+
+### 2. 人物血量
+在character类中而不是PlayerState里添加health，这是因为PlayerState是较慢的网络更新，而character有快速的replication；  
+在character类中添加health为replicated变量并添加notify函数；  
+创建新的health widget，在谷歌fonts中下载新字体，放在progress bar上；  
+新建CharacterOverlay的类，并在其中添加与widget蓝图相同的变量，并在BlasterHUD中加上CharacterOverlay（用于添加到viewport中，并且这个是widget蓝图的父类）和CharacterOverlayClass（用于蓝图中添加，因为创建widget需要UClass）
+
+### 3. 更新血量
+使用PlayerController来访问HUD，直接使用GetHUD()就能访问到HUD；  
+然后在character类中使用PlayerController来更新血量；
+
+### 4. 伤害
+新建ProjectileBullet类继承自Projectile类，并在其中重写OnHit函数事件；  
+因为这里的health变量是replicated的，我们在它的notify函数中调用播放受击伤害动画而不再通过multicast RPC，更加减少网络带宽的使用；  
+使用OnTakeAnyDamage来动态调用ReceiveDamage函数
+
+### 5. Game Mode
+新建继承自GameMode的类，在其中重写玩家角色被销毁的函数；  
+在character类中添加Elim函数；  
+在character类的ReceiveDamage函数中添加判断，当角色生命值为0时我们调用GameMode中玩家被销毁的函数，其中的参数分别是：玩家对象，受击的玩家controller，攻击的玩家controller（即character类中的instigator）
+
+### 6. 死亡动画
+使用飞升动画来创建死亡动画蒙太奇，营造一种溶解的感觉；  
+在Elim函数中播放动画，并设置bool值isElimed供动画蓝图类使用；  
+为了使所有客户端都播放死亡动画，需要使用Multicast RPC，并且因为该信息比较重要，需要设置成reliable
+
+### 7. 复活
+将Elim与MulticastElim分开写，因为我们需要仅在服务端实现一些功能，比如GameMode的计时；  
+新增ElimTimer的计时器，并在Elim函数中进行设置；  
+在GameMode中重写RequstRespawn函数；  
+在计时器的回调函数中调用ElimFinished函数，在其中调用GameMode中的Respawn函数（仅在服务端上）；  
+目前并没有处理人物拾取武器死亡重生后，武器仍在人物死亡位置的问题；  
+如果出生点相近产生碰撞会导致无法重生，需要调整Spawn设置
+
+### 8. 溶解效果
+
+### 9. 死亡禁用人物状态
+在玩家角色被消灭时，我们需要禁用他的移动，碰撞体以及丢掉持有武器；  
+
+### 10. 死亡飞船
+为了让飞船动画播完后在所有客户端消失，需要再次重写Destroy函数，并把销毁飞船组件的代码写在重写的Destroy函数中，像projectile一样；  
+
+### 11. 解决重生后生命值为0的问题
+在PlayerController中重写OnPossess函数，可以通过这个函数让我们在角色重生时更新生命值
+
+### 12. PlayerState
+在UE中，PlayerState 类是用于表示玩家状态的类，它通常用于存储与玩家相关的信息，如分数、生命值、经验等；  
+在PlayerState中持久记录玩家角色的状态；  
+PlayerController可以直接访问到PlayerState，反之不行，但是可以通过Pawn关联到Controller再来Cast得到；  
+PlayerState中有内置的score变量并且是replicated的，重写已经内置的score的notify函数，添加角色类和角色控制类；  
+为了确保服务端和客户端都能更新score，服务端需要单独一份函数来更新score，因为score是replicated的，它会调用Notify函数传播到所有客户端进行更新；  
+为了使玩家死亡后不会重置击杀分数，我们需要保存玩家的状态，而且因为PlayerState在玩家重生后的一到两帧后才会初始化，所以需要在Tick函数中轮询初始化PlayerState；  
+PlayerState 对象的初始化通常是在玩家连接到游戏服务器后进行的，而不是在第一帧时立即初始化。因此，在编写游戏逻辑时，应考虑 PlayerState 对象的初始化和同步时机，并在需要使用 PlayerState 信息时进行适当的处理
+
+### 13. 被击杀数
+与得分基本同理，但是并没有内置的replicated的defeats变量，需要自己创建，加入Lifetime并实现回掉函数；  
+在GameMode的Elimated函数中调用PlayerState的更新分数和死亡数；  
+UPROPERTY宏可以防止未初始化，即指针为未定义的值；
