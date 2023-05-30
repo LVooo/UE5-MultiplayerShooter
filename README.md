@@ -281,3 +281,88 @@ PlayerState 对象的初始化通常是在玩家连接到游戏服务器后进�
 与得分基本同理，但是并没有内置的replicated的defeats变量，需要自己创建，加入Lifetime并实现回掉函数；  
 在GameMode的Elimated函数中调用PlayerState的更新分数和死亡数；  
 UPROPERTY宏可以防止未初始化，即指针为未定义的值；
+
+
+## 六、子弹
+### 1. 武器子弹
+为了同步服务端和客户端的武器子弹，同样需要使用replicated进行网络传递，能够保证一个玩家丢掉武器时，另一个玩家拾取该武器显示的子弹为剩下的子弹数；  
+在Fire函数的最后添加消耗子弹函数；  
+因为我们无法确定是owner还是武器状态先被复制到网络中，所以需要重写owner的notify回调函数，在里面添加子弹数的初始化状态；  
+解决能同时捡起多个武器的问题，在Equip函数中添加判断，如果持有武器了，那么就调用Drop函数；  
+需要注意在人物被消灭后，仍然需要重置子弹数的HUD为0；  
+在Combat组件类中新建CanFire函数，判断条件为子弹数是否大于0和bCanFire是否为true，并且使用Clamp将子弹数控制到0-弹夹最大容量；
+
+### 2. 武器总子弹数
+新建武器类型的枚举数据，将它放到单独的一个头文件中，在Combat组件类中引入这个头文件，并定义TMap数值对类型（武器类型：携带子弹数）；  
+注意尽管我们只需要在服务端上验证伤害和命中事件，但是我们需要ammo是relicated的，因为要传播到客户端上更新子弹的HUD
+
+### 3. 换弹
+为每个特定的武器提供不同的换单姿势，需要创建新的动画蒙太奇，这里先设置Rifle为第一个section；  
+如果我们在客户端上，我们需要向服务端发送RPC，在服务端上确认是否能换弹并播放换弹动画；  
+在换弹时我们需要禁用左手动作的FABRIK让它不会固定在枪上，所以在一个新的头文件中创建CombatState的枚举变量，在其中加上换弹状态，当切换到这个状态时就禁用FABRIK；  
+为了防止状态只改变一次，仅仅只能传递一次RPC，我们可以在换弹动画蒙太奇中加上notify来通知换弹结束，可切换状态；  
+为了正确更新子弹数量，所用的数据公式为：补充的子弹数 = Clamp(0, Min(弹夹数减去子弹数量，剩余总子弹数))；  
+在换弹动画结束后再更新子弹数量；  
+
+### 4. 换弹效果
+添加换弹效果，音效，装备武器音效，并在换弹时禁用其他动画如瞄准；  
+在开火结束时和装备武器时加入判断是否字段为空然后自动换弹
+
+
+## 七、匹配状态
+### 1. 匹配等待时间
+加入计时器HUD显示状态，显示的形式需要使用`%02d:%02d`进行格式化，为了使其每秒更新而不是每帧更新，加入一个uint32类型判断；  
+**同步服务端和客户端的时间**：因为服务端的时间与客户端上显示的时间不同，需要通过网络间传递RPC来获得服务器上的权威时间并减去往返RPC的时间（RTT往返时间）；  
+我们需要创建两个RPC，一个为从客户端发送到服务端上（Server RPC），一个为从服务端返回到客户端（Client RPC）：
+- 服务端接收到的是客户端发送请求的时间，
+- 将客户端发送请求的时间和服务器所在的时间一并发送到客户端上，
+- 客户端收到服务端发送的客户端发送请求的时间减去自身的时间得到RTT（Round Trip Time），
+- 客户端收到服务端回复的当前时间加上一半的RTT（一次RPC的时间）为当钱服务端时间，
+- 而当前服务端与客户端的网络延迟则为求得的当前服务端时间减去现在客户端上的时间，
+- 我们计算出这个网络延迟变量后，每次获取服务器时间时，如果在服务器上直接返回当前时间；如果在客户端上，则用当前客户端时间加上该网络时延即可
+
+通过重写`ReceivedPlayer`可以在很早的时候就被调用来设置网络延迟变量，为了更好的减少误差，我们在Tick函数中加入判断，每五秒就执行一次同步时间；
+
+### 2. Game Mode Base vs. Game Mode
+GMB的功能包括一些默认类，玩家的初始化，重生玩家重启游戏等；  但继承自GMB的GM除了以上功能外还包括Match State；
+![](./pictures/MatchStatesVariable.png)
+添加游戏热身时间（进入主地图后的warm up），需要在GameMode中的BeginPlay获得关卡开启时间，因为在Tick函数中获得的时间为整个游戏启动时间，需要加上关卡开启时间获得正确时间；  
+在PlayerController中添加MtachState为replicated的变量，并添加Notify函数传播到客户端上；  
+在GameMode中重写OnMatchStateSet函数，并在其中通过FConstPlayerControllerIterator来循环遍历所有的PlayerController；  
+当游戏状态切换到InProgress后，显示人物的HUD，将显示HUD的功能同步添加到RepNotify函数当中；  
+我们需要在HUD被创建显示之前，设置HUD的一些值比如生命值和击杀数等，因为他们在PlayerController中设置时是需要先确保Overlay实例化出来的，所以当实例化不成功时，我们将这些值初始化以免无法显示；  
+我们可以将CharacterOverlay挂载在PlayerController上，然后通过PollInit函数判断是否已将Overlay初始化；  
+缓存HUDHealth和HUDDefeates等变量，确保在CharacterOverlay一实例化成功后就能设置好这些值；  
+
+### 3. Warm up界面显示
+在匹配状态为WaitingToStart时我们要调出热身HUD显示；  
+为了在结束游戏时重用该widget为通知胜利者的HUD，所以当匹配状态切换为InProgress时我们将该widget隐藏；  
+将Warmup Time，MatchTime，LevelStartTime都放在GameMode当中：
+- Warmup Time：热身时长
+- MatchTime：匹配时长
+- LevelStartTime：Blaster关卡启动开始的时间
+- GetSeverTime()：服务器上的时间（游戏启动开始时的运行时间加上服务器到客户端的网络时延）
+- TimeLeft：Warmup Time + MatchTime - GetSeverTime() + LevelStartTime
+通过Server RPC和Client RPC设置上述变量，使用Client RPC是因为只需要将这些变量传递一次；
+
+### 4. Cool down界面
+当Cool down时间结束时，我们重启整个游戏；  
+在冷却时间时，我们禁用一些运动比如：跳跃、射击、爬行、瞄准等，但我们仍然允许玩家通过旋转controller旋转摄像头（但不会影响角色旋转），在重启时同样删除武器；  
+通过添加bool变量bDisableGameplay（是replicated的）来控制是否禁用；
+
+### 5. Game State
+我们用Game State来记录得分最高的玩家数组（因为可能是多人并列），这个数组同样是replicated，因为需要传播到客户端显示在widget中；  
+if else判断如下：
+- 若TopPlayers数组中数量为0，则显示没有赢家，
+- 若TopPlayers数组中数量为1且数组中的第一个元素为自身PlayerState，则显示你是赢家，
+- 若TopPlayers数组中数量为1，则表明赢家是其他客户端上的玩家而不是自己，显示该玩家的名字，
+- 若TopPlayers数组中数量为0，则循环遍历数组中的元素，依次将玩家名字显示在屏幕上
+
+
+## 八、新增武器
+### 1. 火箭子弹类
+新建继承自Projectile父类的子类ProjectileRocket，重写其中的OnHit函数；  
+更改伤害函数为ApplayRadial，可以设置范围伤害，并设置内圈和外圈的不同伤害大小，实现线性伤害衰减；  
+在ProjectileRocket类中创建RocketMesh变量，并在AProjectileRocket中进行初始化；  
+新建继承自武器类的Rocket蓝图，在里面设置Mesh，Areasphere，pickup widget，Speed等变量，更改左手的leftSocket位置；  
+在WeaponType中添加新的枚举类型Rocket，并在组件类创建新的Rocket起始弹夹数量，为了放置到CarriedAmmoMap中；
