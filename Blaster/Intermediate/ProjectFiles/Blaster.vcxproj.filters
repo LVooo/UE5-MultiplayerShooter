@@ -143,11 +143,35 @@
     <Filter Include="Source\Blaster\HUD">
       <UniqueIdentifier>{B4AACAF6-499E-3F03-B768-0F749DE5B65B}</UniqueIdentifier>
     </Filter>
+    <ClCompile Include="..\..\Source\Blaster\HUD\BlasterHUD.cpp">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\HUD\BlasterHUD.h">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\HUD\OverHeadWidget.cpp">
       <Filter>Source\Blaster\HUD</Filter>
     </ClCompile>
     <ClInclude Include="..\..\Source\Blaster\HUD\OverHeadWidget.h">
       <Filter>Source\Blaster\HUD</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\Interfaces">
+      <UniqueIdentifier>{02A5F7DF-2842-3DD3-9229-4A464EE87695}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\Interfaces\InteractWithCrosshairsInterface.cpp">
+      <Filter>Source\Blaster\Interfaces</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Interfaces\InteractWithCrosshairsInterface.h">
+      <Filter>Source\Blaster\Interfaces</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\PlayerController">
+      <UniqueIdentifier>{057539C8-6A62-3CA5-A52A-91A9DC512EDA}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\PlayerController\BlasterPlayerController.cpp">
+      <Filter>Source\Blaster\PlayerController</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\PlayerController\BlasterPlayerController.h">
+      <Filter>Source\Blaster\PlayerController</Filter>
     </ClInclude>
     <Filter Include="Source\Blaster\Weapon">
       <UniqueIdentifier>{816D2633-5BC4-3359-ADC4-F063AA87E942}</UniqueIdentifier>

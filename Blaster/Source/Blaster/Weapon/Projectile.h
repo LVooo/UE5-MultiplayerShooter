@@ -38,5 +38,10 @@ private:
 	UParticleSystem* ImpactParticles;
 
 	UPROPERTY(EditAnywhere)
+	UParticleSystem* WeaponImpactParticles;
+
+	UParticleSystem* ChoosedImpactParticle;
+
+	UPROPERTY(EditAnywhere)
 	class USoundCue* ImpactSound;
 };

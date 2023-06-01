@@ -17,7 +17,7 @@ enum class EWeaponState : uint8
 };
 
 UCLASS()
-class BLASTER_API AWeapon : public AActor
+class BLASTER_API  AWeapon : public AActor
 {
 	GENERATED_BODY()
 	
@@ -27,6 +27,44 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void ShowPickupWidget(bool bShowWidget); // 显示捡起武器widget
 	virtual void Fire(const FVector& HitTarget);
+
+	/*
+	* 瞄准十字
+	*/
+	UPROPERTY(EditAnywhere, Category=Crosshairs)
+	class UTexture2D* CrosshairsCenter;
+
+	UPROPERTY(EditAnywhere, Category=Crosshairs)
+	UTexture2D* CrosshairsLeft;
+
+	UPROPERTY(EditAnywhere, Category=Crosshairs)
+	UTexture2D* CrosshairsRight;
+
+	UPROPERTY(EditAnywhere, Category=Crosshairs)
+	UTexture2D* CrosshairsTop;
+
+	UPROPERTY(EditAnywhere, Category=Crosshairs)
+	UTexture2D* CrosshairsBottom;
+
+	/*
+	 * 放大视野
+	 */
+
+	UPROPERTY(EditAnywhere)
+	float ZoomedFOV = 30.f;
+
+	UPROPERTY(EditAnywhere)
+	float ZoomInterpSpeed = 20.f;
+
+	/*
+	 * Automatic fire
+	 */
+	UPROPERTY(EditAnywhere, Category=Combat)
+	float FireDelay = .15f;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	bool bAutomatic = true;
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -70,8 +108,11 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass; // 子弹壳类
 	
+	
 public:	
 	FORCEINLINE void SetWeaponState(EWeaponState State);
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	FORCEINLINE float GetZoomedFOV() const {return ZoomedFOV;}
+	FORCEINLINE float GetZoomInterpSpeed() const {return ZoomInterpSpeed;}
 };

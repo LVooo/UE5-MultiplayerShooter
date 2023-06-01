@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blaster/HUD/BlasterHUD.h"
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
@@ -35,8 +36,22 @@ protected:
 
 	void FireButtonPressed(bool bPressed);
 
+	void Fire();
+
+	UFUNCTION(Server, Reliable)
+	void ServerFire(const FVector_NetQuantize& TraceHitTarget); // 服务器执行
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastFire(const FVector_NetQuantize& TraceHitTarget); // 服务器分发到各客户端
+
+	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+
+	void SetHUDCrosshairs(float DeltaTime);
+
 private:
 	class ABlasterCharacter* Character;
+	class ABlasterPlayerController* Controller;
+	class ABlasterHUD* HUD;
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	AWeapon* EquippedWeapon;
@@ -52,15 +67,46 @@ private:
 
 	bool bFireButtonPressed;
 
-	UFUNCTION(Server, Reliable)
-	void ServerFire(); // 服务器执行
+	/*
+	 * HUD和十字瞄准
+	 */
 
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastFire(); // 服务器分发到各客户端
-
-	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
+	float CrosshairAimFactor;
+	float CrosshairShootingFactor;
+	float CrosshairAimPlayerFactor;
 
 	FVector HitTarget;
+	FHitResult HitResult;
+
+	FHUDPackage HUDPackage;
+
+	/*
+	 * 瞄准并且放大
+	 */
+
+	// 摄像机默认的FOV
+	float DefaultFOV;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	float ZoomedFOV = 30.f;
+	
+	float CurrentFOV;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	float ZoomInterpSpeed = 20.f;
+
+	void InterpFOV(float DeltaTime);
+
+	/*
+	 * 自动开火
+	 */
+	FTimerHandle FireTimer;
+	bool bCanFire = true;
+
+	void StartFireTimer();
+	void FireTimerFinished();
 public:	
 		
 };
