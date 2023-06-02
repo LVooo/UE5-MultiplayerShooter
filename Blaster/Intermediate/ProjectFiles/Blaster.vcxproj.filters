@@ -95,12 +95,6 @@
     <ClInclude Include="..\..\Source\Blaster\Blaster.h">
       <Filter>Source\Blaster</Filter>
     </ClInclude>
-    <ClCompile Include="..\..\Source\Blaster\BlasterGameMode.cpp">
-      <Filter>Source\Blaster</Filter>
-    </ClCompile>
-    <ClInclude Include="..\..\Source\Blaster\BlasterGameMode.h">
-      <Filter>Source\Blaster</Filter>
-    </ClInclude>
     <Filter Include="Source\Blaster\BlasterComponents">
       <UniqueIdentifier>{8F3737CC-73AB-372F-9807-2117AE8F86AA}</UniqueIdentifier>
     </Filter>
@@ -134,6 +128,12 @@
     <Filter Include="Source\Blaster\GameMode">
       <UniqueIdentifier>{3EA2507D-5ADC-33F4-AB1D-9213C5883358}</UniqueIdentifier>
     </Filter>
+    <ClCompile Include="..\..\Source\Blaster\GameMode\BasterGameMode.cpp">
+      <Filter>Source\Blaster\GameMode</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\GameMode\BasterGameMode.h">
+      <Filter>Source\Blaster\GameMode</Filter>
+    </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\GameMode\LobbyGameMode.cpp">
       <Filter>Source\Blaster\GameMode</Filter>
     </ClCompile>
@@ -147,6 +147,12 @@
       <Filter>Source\Blaster\HUD</Filter>
     </ClCompile>
     <ClInclude Include="..\..\Source\Blaster\HUD\BlasterHUD.h">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\HUD\CharacterOverlay.cpp">
+      <Filter>Source\Blaster\HUD</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\HUD\CharacterOverlay.h">
       <Filter>Source\Blaster\HUD</Filter>
     </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\HUD\OverHeadWidget.cpp">
@@ -186,6 +192,12 @@
       <Filter>Source\Blaster\Weapon</Filter>
     </ClCompile>
     <ClInclude Include="..\..\Source\Blaster\Weapon\Projectile.h">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\Blaster\Weapon\ProjectileBullet.cpp">
+      <Filter>Source\Blaster\Weapon</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\Weapon\ProjectileBullet.h">
       <Filter>Source\Blaster\Weapon</Filter>
     </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\Weapon\ProjectileWeapon.cpp">
