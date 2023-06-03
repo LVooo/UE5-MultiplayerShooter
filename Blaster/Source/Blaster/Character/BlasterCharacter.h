@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "Blaster/Interfaces/InteractWithCrosshairsInterface.h"
+#include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "BlasterCharacter.generated.h"
 
@@ -21,10 +22,14 @@ public:
 	// 构造combat component，将其中的character实例化
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
+	void PlayElimMontage();
 
 	// 为了在simulated客户端禁止rootbone
 	virtual void OnRep_ReplicatedMovement() override;
+
 	void Elim();
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastElim();
 
 protected:
 	virtual void BeginPlay() override;
@@ -87,6 +92,9 @@ private:
 	UPROPERTY(EditAnywhere, Category=Combat)
 	class UAnimMontage* HitReactMontage;
 
+	UPROPERTY(EditAnywhere, Category=Combat)
+	UAnimMontage* ElimMontage;
+
 	void HideCameraIfCharacterClose();
 
 	UPROPERTY(EditAnywhere)
@@ -115,6 +123,38 @@ private:
 
 	class ABlasterPlayerController* BlasterPlayerController;
 
+	bool bElimmed = false;
+
+	FTimerHandle ElimTimer;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+
+	void ElimTimerFinished();
+
+	/*
+	 * 溶解效果
+	 */
+
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeLine;
+	FOnTimelineFloat DissolveTrack;
+
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+	void StartDissolve();
+
+	// 动态修改材质
+	UPROPERTY(VisibleAnywhere, Category=Elim)
+	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
+
+	// 静态材质
+	UPROPERTY(EditAnywhere, Category=Elim)
+	UMaterialInstance* DissolveMaterialInstance;
+
 public:
 	// 为OverlappingWeapon赋值
 	void SetOverlappingWeapon(AWeapon* Weapon);
@@ -129,5 +169,6 @@ public:
 	FVector GetHitTarget() const;
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
+	FORCEINLINE bool isElimed() const { return bElimmed; }
 };
 

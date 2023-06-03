@@ -28,6 +28,8 @@ public:
 	void ShowPickupWidget(bool bShowWidget); // 显示捡起武器widget
 	virtual void Fire(const FVector& HitTarget);
 
+	void Dropped();
+
 	/*
 	* 瞄准十字
 	*/
