@@ -35,6 +35,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	class UParticleSystem* Tracer;
 
+	UPROPERTY()
 	class UParticleSystemComponent* TracerComponent; // 发射子弹时产生的粒子效果
 
 	UPROPERTY(EditAnywhere)
@@ -43,6 +44,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* WeaponImpactParticles;
 
+	UPROPERTY()
 	UParticleSystem* ChoosedImpactParticle;
 
 	UPROPERTY(EditAnywhere)

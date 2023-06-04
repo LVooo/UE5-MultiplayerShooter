@@ -30,6 +30,7 @@ public:
 	void Elim();
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastElim();
+	virtual void Destroyed() override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -37,6 +38,8 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Turn(float Rate);
+	
+	
 	void LookUp(float Rate);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
@@ -53,6 +56,8 @@ protected:
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InsigatorController, AActor* DamageCauser);
 	void UpdateHUDHealth();
+	// 轮询初始化PlayerState类和得分以及被击杀数的HUD
+	void PollInit();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -121,6 +126,7 @@ private:
 	UFUNCTION()
 	void OnRep_Health();
 
+	UPROPERTY()
 	class ABlasterPlayerController* BlasterPlayerController;
 
 	bool bElimmed = false;
@@ -155,6 +161,21 @@ private:
 	UPROPERTY(EditAnywhere, Category=Elim)
 	UMaterialInstance* DissolveMaterialInstance;
 
+	/*
+	 * 死亡飞船
+	 */
+
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* ElimBotEffect;
+
+	UPROPERTY(VisibleAnywhere)
+	UParticleSystemComponent* ElimBotComponent;
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* ElimBotSound;
+
+	class ABlasterPlayerState* BlasterPlayerState;
+
 public:
 	// 为OverlappingWeapon赋值
 	void SetOverlappingWeapon(AWeapon* Weapon);
@@ -170,5 +191,7 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	FORCEINLINE bool isElimed() const { return bElimmed; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 };
 

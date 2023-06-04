@@ -128,10 +128,10 @@
     <Filter Include="Source\Blaster\GameMode">
       <UniqueIdentifier>{3EA2507D-5ADC-33F4-AB1D-9213C5883358}</UniqueIdentifier>
     </Filter>
-    <ClCompile Include="..\..\Source\Blaster\GameMode\BasterGameMode.cpp">
+    <ClCompile Include="..\..\Source\Blaster\GameMode\BlasterGameMode.cpp">
       <Filter>Source\Blaster\GameMode</Filter>
     </ClCompile>
-    <ClInclude Include="..\..\Source\Blaster\GameMode\BasterGameMode.h">
+    <ClInclude Include="..\..\Source\Blaster\GameMode\BlasterGameMode.h">
       <Filter>Source\Blaster\GameMode</Filter>
     </ClInclude>
     <ClCompile Include="..\..\Source\Blaster\GameMode\LobbyGameMode.cpp">
@@ -178,6 +178,15 @@
     </ClCompile>
     <ClInclude Include="..\..\Source\Blaster\PlayerController\BlasterPlayerController.h">
       <Filter>Source\Blaster\PlayerController</Filter>
+    </ClInclude>
+    <Filter Include="Source\Blaster\PlayerState">
+      <UniqueIdentifier>{36DA2CE2-FD78-334E-BB19-1138BC13899E}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Source\Blaster\PlayerState\BlasterPlayerState.cpp">
+      <Filter>Source\Blaster\PlayerState</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\Blaster\PlayerState\BlasterPlayerState.h">
+      <Filter>Source\Blaster\PlayerState</Filter>
     </ClInclude>
     <Filter Include="Source\Blaster\Weapon">
       <UniqueIdentifier>{816D2633-5BC4-3359-ADC4-F063AA87E942}</UniqueIdentifier>
