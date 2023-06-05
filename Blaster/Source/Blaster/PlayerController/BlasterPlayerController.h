@@ -19,6 +19,8 @@ public:
 	void SetHUDScore(float Score);
 	void SetHUDDefeats(int32 Defeats);
 	void SetHUDElimatedText(bool bHasElimated);
+	void SetHUDWeaponAmmo(int32 Ammo);
+	void SetHUDCarriedAmmo(int32 Ammo);
 protected:
 	virtual void BeginPlay() override;
 

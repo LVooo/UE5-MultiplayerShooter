@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blaster/HUD/BlasterHUD.h"
+#include "Blaster/Weapon/WeaponTypes.h"
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
@@ -23,6 +24,8 @@ public:
 	friend class ABlasterCharacter;
 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+
+	void Reload();
 
 protected:
 	virtual void BeginPlay() override;
@@ -47,6 +50,9 @@ protected:
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
+
+	UFUNCTION(Server, Reliable)
+	void ServerReload();
 
 private:
 	UPROPERTY()
@@ -110,6 +116,23 @@ private:
 
 	void StartFireTimer();
 	void FireTimerFinished();
+
+	bool CanFire();
+
+	// 武器总弹夹
+	UPROPERTY(ReplicatedUsing=OnRep_CarriedAmmo)
+	int32 CarriedAmmo;
+
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
+
+	TMap<EWeaponType, int32> CarriedAmmoMap;
+
+	UPROPERTY(EditAnywhere)
+	int32 StartingARAmmo = 30;
+
+	void InitializerCarriedAmmo();
+	
 public:	
 		
 };

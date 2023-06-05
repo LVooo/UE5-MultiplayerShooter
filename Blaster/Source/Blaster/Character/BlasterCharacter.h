@@ -22,6 +22,7 @@ public:
 	// 构造combat component，将其中的character实例化
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
+	void PlayReloadMontage();
 	void PlayElimMontage();
 
 	// 为了在simulated客户端禁止rootbone
@@ -43,6 +44,7 @@ protected:
 	void LookUp(float Rate);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
+	void ReloadButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime); // 站立状态时的瞄准
@@ -91,8 +93,15 @@ private:
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
 
+	/*
+	 * 动画蒙太奇
+	 */
+	
 	UPROPERTY(EditAnywhere, Category=Combat)
 	class UAnimMontage* FireWeaponMontage;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	class UAnimMontage* ReloadMontage;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	class UAnimMontage* HitReactMontage;
