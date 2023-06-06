@@ -76,6 +76,20 @@ void AWeapon::SetHUDAmmo()
 	}
 }
 
+void AWeapon::SetHUDWeaponType()
+{
+	// GetOwner在没有设置Owner前是空的
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter)
+	{
+		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
+		if (BlasterOwnerController)
+		{
+			BlasterOwnerController->SetHUDWeaponType(WeaponType);
+		}
+	}
+}
+
 
 void AWeapon::SpendRound()
 {
@@ -100,6 +114,7 @@ void AWeapon::OnRep_Owner()
 	else
 	{
 		SetHUDAmmo();
+		SetHUDWeaponType();
 	}
 }
 
@@ -213,6 +228,12 @@ void AWeapon::Dropped()
 	SetOwner(nullptr);
 	BlasterOwnerCharacter = nullptr;
 	BlasterOwnerController = nullptr;
+}
+
+void AWeapon::AddAmmo(int32 AmmoToAdd)
+{
+	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
+	SetHUDAmmo();
 }
 
 bool AWeapon::IsEmpty()

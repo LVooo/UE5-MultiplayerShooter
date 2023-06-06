@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blaster/Weapon/WeaponTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
@@ -21,6 +22,7 @@ public:
 	void SetHUDElimatedText(bool bHasElimated);
 	void SetHUDWeaponAmmo(int32 Ammo);
 	void SetHUDCarriedAmmo(int32 Ammo);
+	void SetHUDWeaponType(EWeaponType WeaponType);
 protected:
 	virtual void BeginPlay() override;
 

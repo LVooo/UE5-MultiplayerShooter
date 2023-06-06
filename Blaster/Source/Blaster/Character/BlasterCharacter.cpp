@@ -128,6 +128,7 @@ void ABlasterCharacter::MulticastElim_Implementation()
 	if (BlasterPlayerController)
 	{
 		BlasterPlayerController->SetHUDWeaponAmmo(0);
+		BlasterPlayerController->SetHUDWeaponType(EWeaponType::EWT_MAX);
 	}
 	
 	bElimmed = true;
@@ -689,4 +690,10 @@ FVector ABlasterCharacter::GetHitTarget() const
 {
 	if (Combat == nullptr) return FVector();
 	return Combat->HitTarget;
+}
+
+ECombatState ABlasterCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+	return Combat->CombatState;
 }
