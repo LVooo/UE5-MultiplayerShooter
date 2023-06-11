@@ -34,11 +34,16 @@ public:
 	void MulticastElim();
 	virtual void Destroyed() override;
 
+	UPROPERTY(Replicated)
+	bool bDisableGameplay = false;
+
 protected:
 	virtual void BeginPlay() override;
 	
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+	void Turn(float Value);
+	void LookUp(float Value);
 	
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
@@ -58,6 +63,7 @@ protected:
 	void UpdateHUDHealth();
 	// 轮询初始化PlayerState类和得分以及被击杀数的HUD
 	void PollInit();
+	void RotateInPlace(float DeltaTime);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera) // 需要在蓝图中使用
@@ -201,5 +207,7 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	ECombatState GetCombatState() const;
+	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
+	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 };
 
