@@ -146,6 +146,8 @@ void ABlasterCharacter::MulticastElim_Implementation()
 
 	// 禁用角色移动，但保持摄像头旋转
 	bDisableGameplay = true;
+	// 禁用重力
+	GetCharacterMovement()->DisableMovement();
 	if (Combat)
 	{
 		Combat->FireButtonPressed(false);
