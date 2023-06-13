@@ -422,9 +422,7 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 			{
 				CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f, DeltaTime, 30.f);
 			}
-
-			CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 40.f);
-
+			
 			// 如果瞄准到敌人再次收缩瞄准镜
 			if (!bAiming && HitResult.GetActor() && HitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
 			{
@@ -440,7 +438,8 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 				0.5f +
 				CrosshairVelocityFactor + CrosshairInAirFactor - CrosshairAimFactor + CrosshairShootingFactor - CrosshairAimPlayerFactor;
 
-			
+			CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 10.f);
+			 
 			HUD->SetHUDPackage(HUDPackage);
 		}
 	}
@@ -503,4 +502,6 @@ void UCombatComponent::InitializerCarriedAmmo()
 {
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingARAmmo);
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_RockerLauncher, StartingRocketAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubmachineGun, StartingSMGAmmo);
 }
