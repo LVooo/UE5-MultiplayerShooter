@@ -18,6 +18,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	void StartDestroyTimer();
+	void DestroyTimeFinished();
+	void SpawnTrailSystem();
+	void ExplodeDamage();
 
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -29,13 +33,31 @@ protected:
     class UParticleSystem* ImpactParticles;
 
 	UPROPERTY(EditAnywhere)
+	UParticleSystem* WeaponImpactParticles;
+
+	UPROPERTY(EditAnywhere)
 	class USoundCue* ImpactSound;
 
 	UPROPERTY(EditAnywhere)
 	class UBoxComponent* CollisionBox;
 
+	UPROPERTY(EditAnywhere)
+	class UNiagaraSystem* TrailSystem;
+
+	UPROPERTY()
+	class UNiagaraComponent* TrailSystemComponent;
+	
 	UPROPERTY(VisibleAnywhere)
 	class UProjectileMovementComponent* ProjectileMovementComponent;
+
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* ProjectileMesh;
+
+	UPROPERTY(EditAnywhere)
+	float DamageInnerRadius = 200.f;
+
+	UPROPERTY(EditAnywhere)
+	float DamageOuterRadius = 500.f;
 
 private:
 	UPROPERTY(EditAnywhere)
@@ -44,9 +66,11 @@ private:
 	UPROPERTY()
 	class UParticleSystemComponent* TracerComponent; // 发射子弹时产生的粒子效果
 
-	UPROPERTY(EditAnywhere)
-	UParticleSystem* WeaponImpactParticles;
-
 	UPROPERTY()
 	UParticleSystem* ChoosedImpactParticle;
+
+	FTimerHandle DestroyTimer;
+
+	UPROPERTY(EditAnywhere)
+	float DestroyTime = 3.f;
 };

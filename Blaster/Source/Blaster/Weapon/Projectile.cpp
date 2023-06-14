@@ -3,6 +3,7 @@
 
 #include "Projectile.h"
 
+#include "NiagaraFunctionLibrary.h"
 #include "Blaster/Blaster.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Components/BoxComponent.h"
@@ -24,11 +25,7 @@ AProjectile::AProjectile()
 	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 	CollisionBox->SetCollisionResponseToChannel(ECC_SkeletalMesh, ECollisionResponse::ECR_Block);
 
-	// 仅在服务器上实现委托回调函数
-	if (HasAuthority())
-	{
-		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
-	}
+	ChoosedImpactParticle = ImpactParticles;
 }
 
 void AProjectile::BeginPlay()
@@ -46,12 +43,34 @@ void AProjectile::BeginPlay()
 			EAttachLocation::KeepWorldPosition
 			);
 	}
+	
+	// 仅在服务器上实现委托回调函数
+	if (HasAuthority())
+	{
+		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
+	}
+}
+
+void AProjectile::StartDestroyTimer()
+{
+	GetWorldTimerManager().SetTimer(
+	DestroyTimer,
+	this,
+	&AProjectile::DestroyTimeFinished,
+	DestroyTime
+	);
+}
+
+void AProjectile::DestroyTimeFinished()
+{
+	Destroy();
 }
 
 void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
+	// 这种方法仅能在服务端上更改，因为OnHit在服务端调用
 	if (BlasterCharacter)
 	{
 		ChoosedImpactParticle = WeaponImpactParticles;
@@ -61,6 +80,48 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 		ChoosedImpactParticle = ImpactParticles;
 	}
 	Destroy(); // 这里调用的是Destroy函数而不是Destroyed()。因为AActor 的 Destroy 函数在执行完对象销毁的操作后，在其中调用了自身的 Destroyed 函数
+}
+
+void AProjectile::SpawnTrailSystem()
+{
+	// 初始化粒子效果；并且存储在组件中，因为我们想手动控制它的结束
+	if (TrailSystem)
+	{
+		TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			TrailSystem,
+			GetRootComponent(),
+			FName(),
+			GetActorLocation(),
+			GetActorRotation(),
+			EAttachLocation::KeepWorldPosition,
+			false
+			);
+	}
+}
+
+void AProjectile::ExplodeDamage()
+{
+	APawn* FiringPawn = GetInstigator();
+	if (FiringPawn && HasAuthority())
+	{
+		AController* FiringController = FiringPawn->GetController();
+		if (FiringController)
+		{
+			UGameplayStatics::ApplyRadialDamageWithFalloff(
+				this,
+				Damage,
+				10.f,
+				GetActorLocation(),
+				DamageInnerRadius,
+				DamageOuterRadius,
+				1.f,
+				UDamageType::StaticClass(),
+				TArray<AActor*>(),
+				this,
+				FiringController
+				);
+		}
+	}
 }
 
 void AProjectile::Tick(float DeltaTime)
@@ -73,8 +134,9 @@ void AProjectile::Destroyed()
 {
 	Super::Destroyed();
 
-	if (ImpactParticles)
+	if (ChoosedImpactParticle || ImpactParticles)
 	{
+		ChoosedImpactParticle = ChoosedImpactParticle == nullptr ? ImpactParticles : ChoosedImpactParticle;
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ChoosedImpactParticle, GetActorTransform());
 	}
 	if (ImpactSound)

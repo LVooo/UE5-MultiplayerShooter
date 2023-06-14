@@ -174,6 +174,16 @@ void ABlasterCharacter::MulticastElim_Implementation()
 			GetActorLocation()
 			);
 	}
+
+	// 如果玩家正在使用狙击枪瞄准播放，瞄准widget时死亡需要消除动画
+	bool bHideSniperScope = IsLocallyControlled() &&
+		Combat && Combat->EquippedWeapon &&
+			Combat->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle &&
+				Combat->bAiming;
+	if (bHideSniperScope)
+	{
+		ShowSniperScopeWidget(false);
+	}
 }
 
 void ABlasterCharacter::ElimTimerFinished()
@@ -320,6 +330,15 @@ void ABlasterCharacter::PlayReloadMontage()
 			SectionName = FName("Rifle");
 			break;
 		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
 			SectionName = FName("Rifle");
 			break;
 		}
