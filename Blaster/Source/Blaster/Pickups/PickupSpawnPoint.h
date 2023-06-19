@@ -18,6 +18,24 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+	UPROPERTY(EditAnywhere)
+	TArray<TSubclassOf<class APickup>> PickupClasses;
 
+	UPROPERTY()
+	APickup* SpawnedPickup;
+
+	void SpawnPickup();
+	void SpawnPickupTimerFinished();
+
+	UFUNCTION()
+	void StartSpawnPickupTimer(AActor* DestroyedActor);
+
+public:	
+	FTimerHandle SpawnPickupTimer;
+
+	UPROPERTY(EditAnywhere)
+	float SpawnPickupTimeMin;
+
+	UPROPERTY(EditAnywhere)
+	float SpawnPickupTimeMax;
 };

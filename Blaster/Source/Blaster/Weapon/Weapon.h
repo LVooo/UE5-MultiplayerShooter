@@ -12,6 +12,7 @@ enum class EWeaponState : uint8
 {
 	EWS_Initial UMETA(DisplayName = "Initial State"), // 使用宏指定显示名称
 	EWS_Equipped UMETA(DisplayName = "Equipped"),
+	EWS_EquippedSecondary UMETA(DisplayName = "Equipped Secondary"),
 	EWS_Dropped UMETA(DisplayName = "Dropped"),
 
 	EWS_MAX UMETA(DisplayName = "DefaultMax")
@@ -78,9 +79,15 @@ public:
 	 * 开启或关闭武器轮廓颜色
 	 */
 	void EnableCustomDepth(bool bEnable);
+
+	bool bDestroyedWeapon = false;
 	
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnWeaponStateSet();
+	virtual void OnEquipped();
+	virtual void OnDropped();
+	virtual void OnEquippedSecondary();
 	
 	UFUNCTION() // 可以通过蓝图使用
 	virtual void OnSphereOverlap(
