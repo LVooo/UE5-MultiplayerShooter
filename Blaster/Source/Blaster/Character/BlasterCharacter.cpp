@@ -507,7 +507,7 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 		{
 			Combat->EquipWeapon(OverlappingWeapon);	
 		}
-		else
+		else if (Combat->ShouldSwapWeapons())
 		{
 			Combat->SwapWeapons();
 		}
