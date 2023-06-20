@@ -212,7 +212,7 @@ HUD类中存在`DrawHUD()`函数，会被每帧调用，在这里画十字瞄准
 在速度大于0即移动过程时，需要提前判断设置为不旋转状态并提前返回
 
 ### 11. 自动开火
-在Combat组件类中设置开始和结束的开火时间函数，对于非自动开火武器使用bCanFire控制开火间隔时间（FireDelay）；  
+在Combat组件类中设置开始和结束的开火时间函数，对于非自动开火武器使用bCanFire控制**连续点击鼠标状态下**的开火间隔时间（FireDelay）；  
 在武器类中加入FireDelay，bAutomatic等变量
 
 ### 12. Option
@@ -305,12 +305,14 @@ bug：在被击杀数到达1时，再进入增加击杀数函数时，Character-
 
 ## 六、子弹
 ### 1. 武器子弹
+子弹是非常重要的一个属性，应该仅让服务器进行管理；  
 为了同步服务端和客户端的武器子弹，同样需要使用replicated进行网络传递，能够保证一个玩家丢掉武器时，另一个玩家拾取该武器显示的子弹为剩下的子弹数；  
 在Fire函数的最后添加消耗子弹函数；  
+因为在武器类中，继承自Actor类，需要通过`GetOwner()`来获得Character，所以在设置HUD前需要确保Owner已经正确设置，所以客户端的HUD要设置在Owner的Notify函数中；    
 因为我们无法确定是owner还是武器状态先被复制到网络中，所以需要重写owner的notify回调函数，在里面添加子弹数的初始化状态；  
 解决能同时捡起多个武器的问题，在Equip函数中添加判断，如果持有武器了，那么就调用Drop函数；  
 需要注意在人物被消灭后，仍然需要重置子弹数的HUD为0；  
-在Combat组件类中新建CanFire函数，判断条件为子弹数是否大于0和bCanFire是否为true，并且使用Clamp将子弹数控制到0-弹夹最大容量；
+在Combat组件类中新建CanFire函数，判断条件为子弹数是否大于0和bCanFire是否为true，并且使用Clamp将子弹数控制到0 - 弹夹最大容量；
 
 ### 2. 武器总子弹数
 新建武器类型的枚举数据，将它放到单独的一个头文件中，在Combat组件类中引入这个头文件，并定义TMap数值对类型（武器类型：携带子弹数）；  
@@ -319,8 +321,10 @@ bug：在被击杀数到达1时，再进入增加击杀数函数时，Character-
 ### 3. 换弹
 为每个特定的武器提供不同的换单姿势，需要创建新的动画蒙太奇，这里先设置Rifle为第一个section；  
 如果我们在客户端上，我们需要向服务端发送RPC，在服务端上确认是否能换弹并播放换弹动画；  
-在换弹时我们需要禁用左手动作的FABRIK让它不会固定在枪上，所以在一个新的头文件中创建CombatState的枚举变量，在其中加上换弹状态，当切换到这个状态时就禁用FABRIK；  
+在换弹时我们需要禁用左手动作的FABRIK让它不会固定在枪上，所以在一个新的头文件中创建`CombatState`的枚举变量，其中有换弹状态`Reload`和未被占用状态`Unoccupied`，当切换到换弹状态时就禁用FABRIK，换弹完毕时需切回未被占用状态；  
 为了防止状态只改变一次，仅仅只能传递一次RPC，我们可以在换弹动画蒙太奇中加上notify来通知换弹结束，可切换状态；  
+如果没有在CanFire函数中加入判断，我们在换弹时点击开火就会中断换弹动画，导致无法到换弹结束notify中切换状态；  
+为了防止状态切换时还没从服务端传到客户端，无法在MulticastFire中实现开火动画蒙太奇，我们在Combat的Notify函数中加入判断，如果开火键被按住则调用Fire函数；  
 为了正确更新子弹数量，所用的数据公式为：补充的子弹数 = Clamp(0, Min(弹夹数减去子弹数量，剩余总子弹数))；  
 在换弹动画结束后再更新子弹数量；  
 
@@ -331,26 +335,29 @@ bug：在被击杀数到达1时，再进入增加击杀数函数时，Character-
 
 ## 七、匹配状态
 ### 1. 匹配等待时间
-加入计时器HUD显示状态，显示的形式需要使用`%02d:%02d`进行格式化，为了使其每秒更新而不是每帧更新，加入一个uint32类型判断；  
-**同步服务端和客户端的时间**：因为服务端的时间与客户端上显示的时间不同，需要通过网络间传递RPC来获得服务器上的权威时间并减去往返RPC的时间（RTT往返时间）；  
+加入计时器HUD显示状态，显示的形式需要使用`%02d:%02d`进行格式化，为了使其每秒更新而不是每帧更新，加入一个uint32类型判断，使其在每个整数秒后在tick中更新；
+
+**同步服务端和客户端的时间**：由于每个客户端启动游戏的时间都不一定相同，导致服务端的时间与客户端上显示的时间不同，需要通过网络间传递RPC来获得服务器上的权威时间并减去往返RPC的时间（RTT往返时间）；  
 我们需要创建两个RPC，一个为从客户端发送到服务端上（Server RPC），一个为从服务端返回到客户端（Client RPC）：
 - 服务端接收到的是客户端发送请求的时间，
 - 将客户端发送请求的时间和服务器所在的时间一并发送到客户端上，
 - 客户端收到服务端发送的客户端发送请求的时间减去自身的时间得到RTT（Round Trip Time），
 - 客户端收到服务端回复的当前时间加上一半的RTT（一次RPC的时间）为当钱服务端时间，
 - 而当前服务端与客户端的网络延迟则为求得的当前服务端时间减去现在客户端上的时间，
-- 我们计算出这个网络延迟变量后，每次获取服务器时间时，如果在服务器上直接返回当前时间；如果在客户端上，则用当前客户端时间加上该网络时延即可
+- 我们计算出这个网络延迟变量（ClientServerDelta为正值，调用GetSeconds启动越早时间越长，所以客户端的启动时间是小于服务端的）后，每次获取服务器时间时，如果在服务器上直接返回当前时间；如果在客户端上，则用当前客户端时间加上该网络时延即可
 
 通过重写`ReceivedPlayer`可以在很早的时候就被调用来设置网络延迟变量，为了更好的减少误差，我们在Tick函数中加入判断，每五秒就执行一次同步时间；
 
 ### 2. Game Mode Base vs. Game Mode
 GMB的功能包括一些默认类，玩家的初始化，重生玩家重启游戏等；  但继承自GMB的GM除了以上功能外还包括Match State；
-![](./pictures/MatchStatesVariable.png)
-添加游戏热身时间（进入主地图后的warm up），需要在GameMode中的BeginPlay获得关卡开启时间，因为在Tick函数中获得的时间为整个游戏启动时间，需要加上关卡开启时间获得正确时间；  
+![](./pictures/MatchStatesVariable.png)  
+当我们设置`bDelayedStart=true`时GameMode会停留在WaitingToStart状态知道我们手动调用`StartMatch`函数来转换到InProgress状态来初始化玩家角色；  
+添加游戏热身时间（进入主地图后的warm up），需要在GameMode中的BeginPlay获得关卡开启时间，因为在Tick函数中获得的时间为整个游戏启动时间（即从主菜单开始），需要加上主关卡（Blaster）开启时间（LevelStartTime）获得正确时间；  
 在PlayerController中添加MtachState为replicated的变量，并添加Notify函数传播到客户端上；  
 在GameMode中重写OnMatchStateSet函数，并在其中通过FConstPlayerControllerIterator来循环遍历所有的PlayerController；  
 当游戏状态切换到InProgress后，显示人物的HUD，将显示HUD的功能同步添加到RepNotify函数当中；  
-我们需要在HUD被创建显示之前，设置HUD的一些值比如生命值和击杀数等，因为他们在PlayerController中设置时是需要先确保Overlay实例化出来的，所以当实例化不成功时，我们将这些值初始化以免无法显示；  
+我们需要在HUD被创建显示之前，设置HUD的一些值比如生命值和击杀数等，因为他们在PlayerController中设置时是需要先确保Overlay实例化出来的，所以当实例化不成功时，我们将这些值初始化以免无法显示（我们把添加CharacterOverlay的函数从BlasterHUD的
+BeginPlay函数中删除，在PlayerController的状态切换时添加CharacterOverlay）；  
 我们可以将CharacterOverlay挂载在PlayerController上，然后通过PollInit函数判断是否已将Overlay初始化；  
 缓存HUDHealth和HUDDefeates等变量，确保在CharacterOverlay一实例化成功后就能设置好这些值；  
 
@@ -368,7 +375,7 @@ GMB的功能包括一些默认类，玩家的初始化，重生玩家重启游�
 ### 4. Cool down界面
 当Cool down时间结束时，我们重启整个游戏；  
 在冷却时间时，我们禁用一些运动比如：跳跃、射击、爬行、瞄准等，但我们仍然允许玩家通过旋转controller旋转摄像头（但不会影响角色旋转），在重启时同样删除武器；  
-通过添加bool变量bDisableGameplay（是replicated的）来控制是否禁用；
+通过在人物类中添加bool变量bDisableGameplay（是replicated的）来控制是否禁用，在需要禁用的输入函数中加上该布尔类型的判断，我们希望在CoolDown时间时只允许玩家旋转摄像头视角；
 
 ### 5. Game State
 我们用Game State来记录得分最高的玩家数组（因为可能是多人并列），这个数组同样是replicated，因为需要传播到客户端显示在widget中；  
@@ -386,3 +393,215 @@ if else判断如下：
 在ProjectileRocket类中创建RocketMesh变量，并在AProjectileRocket中进行初始化；  
 新建继承自武器类的Rocket蓝图，在里面设置Mesh，Areasphere，pickup widget，Speed等变量，更改左手的leftSocket位置；  
 在WeaponType中添加新的枚举类型Rocket，并在组件类创建新的Rocket起始弹夹数量，为了放置到CarriedAmmoMap中；
+
+### 2. 火箭箭尾轨迹
+创建箭尾轨迹的粒子系统FX；  
+需要在Build文件中加上`Niagara`这个模块；  
+因为需要调用父类Projectile中的ImpactParticles和ImpactSound变量，需要将它们从私有类中转移到保护类，这样子类可以直接访问到该变量；  
+火箭子弹类中添写销毁时间定时器，`TrailSystem`粒子系统和`ProjectileLoop`声音系统的类和对应**组件类**（用于手动销毁）；  
+因为伤害计算都在服务器上判断，原父类Projectile的OnHit函数仅在服务器上调用，但我们在子类ProjectileRocket中想让客户端调用OnHit函数，因为要触发当中的粒子效果和音效（原来父类的OnHit函数仅调用Destroy函数来在销毁时触发效果），而这里我们想让火箭弹命中目标时就播放粒子效果而不是销毁后，这里的定时器是为了使绑定在火箭弹上的箭尾轨迹不会随着碰撞直接消失而是在定时器的规定时间内缓慢消失；  
+所以这边重写了Destroyed()函数但不做任何操作；
+
+### 3. 子弹移动组件
+火箭弹会存在与发射火箭弹的所有者碰撞的问题，但我们不能直接在Projectile的BeginPlay中直接Ignore特定的Actor，因为碰撞发生的太早了代码无法执行到这一步就爆炸了哈哈；  
+Projectile的移动组件设定是当触发碰撞时会停止移动，所以不能单单在OnHit中判断是否命中自己，因为我们想让火箭弹即使与自己碰撞也要继续向前移动，这时我们可以制作自己的Projectile Movement Component；  
+有些开发者可能会把在火箭发射器的socket向前移动一些来避免碰撞，但这并不专业；  
+我们想让Projectile Movement Component在检测到Hit碰撞时继续向前移动而不是停止（即便是检测与自己碰撞的情况），所以要让移动组件检测到碰撞时继续向前移动，只用它的collision box碰撞体来做OnHit碰撞检测判断；
+
+### 4. 射线武器类
+与投掷物武器类一样同样继承于武器AWeapon类，但不同的是投掷武器类仅重写了父类的Fire函数，并且拥有`TSubclassOf<Projectile>`的私有子类，在Fire函数触发时会在世界中生成投掷物，其他的比如伤害，碰撞粒子效果和音效等都存放在类Projectile自己的类当中；而射线武器类则自己带有伤害和粒子效果音效等子类；  
+通过在Fire函数中调用LineTrace来给FHitResult赋值，通过这个Hit结果检测是否是人物Actor来计算伤害并播放粒子效果等；
+
+### 5. 射线粒子
+从MuzzleFlashSocket为起始点射出，设置射线的命中终点为：起始点 + (命中目标点 - 起始点)*1.25f，来确保射线能够正确的穿过目标点产生碰撞；
+如果FireHit产生了与碰撞就将Beam的终点设置为该碰撞点，并将碰撞点设置在Beam粒子系统上的`Target`上即可播放粒子效果；
+
+### 6. 冲锋枪
+在`WeaponType`枚举中新增冲锋枪类型；  
+在`CombatComponent`中的携带子弹TMap中新增键值对：（冲锋枪，起始携带子弹数）；  
+在`BlasterCharacter`中的换弹蒙太奇切换代码中添加冲锋枪的case判断并跳到对应的换弹Section Name；  
+这里因为冲锋枪的开火动画中没有自带射击声音和开火动画，我们需要在`HitScanWeapon`类中自行添加对应变量并在Fire函数中进行播放；  
+在冲锋枪的物理材质中调整AmmoEject的位置以及添加LeftHandSocket；  
+为了模拟冲锋枪前面带子的物理效果，我们为其带子骨骼添加胶囊体，并开启他的碰撞检测和重力效果；
+
+### 7. 霰弹枪
+加入霰弹枪的初始步骤与上述冲锋枪相同；  
+在`HitScanWeapon`类中加入`TraceEndWithScatter`来获取每个射线点的终点位置；  
+- 使用`ToTargetNormalized`归一化可以得到从 TraceStart 到 HitTarget 的单位向量，即方向 
+- 目标位置中心点为：TraceStart起点 + 一段固定距离 * 归一化后方向上的单位向量，
+- 设置随机向量的方向为：随机单位向量 * 范围区间（0到设置的固定半径）相当于一个圆球中的随机点，
+- 终点位置即为圆心 + 随机向量，
+- 起点到终点的这段距离即为：终点位置 - 射线起点位置，
+- 返回值为：`FVector(TraceStart + ToEndLoc * TRACE_LENGTH / ToEndLoc.Size())`避免射线长度值太大造成浮点数值溢出我们这里除以一个自己的size；
+
+创建`TMap<ABlasterCharacter*, uint32> HitMap`临时变量用来存放命中的玩家和累积的子弹数；  
+在`Shotgun`类中的Fire函数里遍历循环一个霰弹枪可以打出的子弹数（比如十二个），每命中一个玩家使其在HitMap中的值+1，否则是新玩家就存储在HitMap当中并设置值为1；  
+最后遍历这个HitMap，对每个存在的Key值并且仅在服务器上进行伤害计算；
+
+### 8. 弹道扩散
+在HitScanWeapon中加入布尔值变量`bUseScatter`来设置是否启用随机弹道；  
+在`HitScanWeapon`类中将判断武器射线的代码封装成一个函数`void WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit);`其中OutHit为引用用于输出值；  
+通过`FVector End = bUseScatter ? TraceEndWithScatter(TraceStart, HitTarget) : TraceStart + (HitTarget - TraceStart) * 1.25f;`来判断是将终点应用于随机弹道的值还是正常直线弹道；  
+  
+### 9. 狙击枪
+与上述添加武器方法相似，更为简洁，继承`HiitScanWeapon`类即可；  
+新建瞄准镜的widget并为其添加渐变动画；
+在Character类中添加`UFUNCTION(BlueprintImplementableEvent)
+	void ShowSniperScopeWidget(bool bShowScope);`然后在蓝图中调用该事件判断是否启用瞄准镜的widget并播放动画；  
+在Combat组件的SetAiming函数中进行判断，如果武器类型是狙击枪就调用上述ShowSniperScopeWidget函数并传入true；  
+记得要在Elim函数中进行判断是否开着瞄准镜，如果开着需要调用ShowSniperScopeWidget函数并传入false避免人死了瞄准镜widget还存在；  
+
+### 10. 榴弹发射器
+与上述添加武器方法相似；  
+但是发射出的Projectile不同，为了更好的继承父类Projectile，将粒子系统，ProjectileMesh，伤害内圈半径，伤害外圈半径，定时器和爆炸伤害函数都写到父类当中，给子类直接调用；  
+重写BeginPlay和Destroyed函数，但在BeginPlay函数中不要Super继承自父类，而是继承自AActor类，因为父类中使用CollisionBox的Hit来判断命中条件，而我们这里则需在开始时启动定时器，使榴弹在发射一段时间后计时爆炸；  
+榴弹发射器并不是命中即爆炸的，而是可弹射跳跃的，所以这里加上On Bounce函数并加上对应参数，通过动态委托`ProjectileMovementComponent->OnProjectileBounce.AddDynamic(this, &AProjectileGrenade::OnBounce);`来在该函数中播放弹跳声音；
+
+### 11. 不同武器的换弹动画
+在换弹动画蒙太奇中为不同的武器创建不同的Montage SectionName，分别添加：
+- 对应武器换弹动画
+- 换弹时的动作声音
+  - 拔出弹夹声音
+  - 插入弹夹声音
+- 换弹结束的notify
+- 记得在Montage Section中点击clear，否则会导致动画连续播放
+
+### 12. 霰弹枪专属换弹
+犹豫霰弹枪的换弹方式与其他枪械不同，这里我们设置一个弹夹有四发，分别对应了换弹动画蒙太奇中霰弹枪换弹Section动画下四个不同的Shell Notify，直接在蓝图中使用这个Notify，每一个Notify我们调用Combat组件当中的`ShotgunShellReload()`函数来更新子弹数量（仅在服务器上）；  
+客户端上的换弹动画会在`OnRep_Ammo`函数中进行调用，因为Ammo是replicated的，服务端会传播到客户端上；  
+进行子弹更新时，每一次调用会添加一发子弹并设置布尔变量`bCanFire`为true（区别于其他武器的地方是：我们想实现霰弹枪换弹过程中会打断换弹并直接开火），在开火函数中需要将状态从Reload切到Unoccupied；  
+判断当弹夹已经填满或者携带子弹为0时，通过函数将动画实例跳转到霰弹枪换弹Section动画下的ShotgunEnd Notify，结束换弹动画；
+
+### 13. 枪械轮廓
+使用后期处理post process，在其材质数组中加入后期处理材质（配置自定义深度渲染管线 ）；  
+给每个武器设置Render CustomDepth为true；  
+设置Stencil模版值；  
+武器类中添加define设定：250为紫色，251为蓝色，252为黄色
+
+### 14. 手榴弹
+添加键位，按下T健时播放投掷手榴弹动画；  
+在Combat状态类中添加投掷手雷手雷状态；  
+在Combat组件中添加投掷手雷函数和对应的服务器RPC，以及供蓝图调用的投掷手雷结束后的函数；  
+投掷手雷函数中改变Combat状态，并播放投掷手榴弹动画，如果在客户端上则调用服务器RPC来切换状态并播放动画；  
+这里Combat状态是Replicated的，所以在Rep Notfy函数中添加切换到ThrowingGrenade状态时播放动画，用于传播到客户端的动画播放；  
+投掷手雷结束后的函数中用于将Combat状态切回Unoccupied状态；  
+在Character类中添加手榴弹动画蒙太奇变量，创建对应Pressed函数和播放投掷手榴弹动画函数；  
+
+我们要实现投掷手榴弹时，将装备的武器从右手socket移至左手socket，我们在人物骨骼模型中调整左手socket的位置，使武器转移过去时处于合理的位置；  
+将绑定目标Actor到手上这个过程封装成两个函数，一个为绑定到右手，一个为绑定到右手，用于扔完手榴弹后武器的位置切换；  
+我们为手枪和冲锋枪添加了一个单独的Socket，因为枪械Mesh大小的缘故需要做些调整，通过装备武器的武器类型来判断是否使用该Socket；  
+
+在Character类中添加手榴弹的Mesh组件，在开始游戏时将其可见性设为false；  
+在Combat类中添加显示手榴弹Mesh的函数，参数为bool类型，调用人物类中的手榴弹Mesh并设置可见性；  
+在投掷手榴弹函数中调用显示手榴弹Mesh的函数并传入true，在Combat状态的notify函数中同样调用该函数传入true；  
+
+在Combat组件中添加GrenadeClass，并添加初始化手榴弹函数，设置SpawnParams的Owner和Instigator，并通过World来生成该Actor；  
+在投掷手榴弹动画中添加生成手榴弹的Notify，在动画蓝图中调用该Notify事件并调用Combat组件类中的生成手榴弹函数；  
+添加服务器RPC来在服务端生成手榴弹，如果是本地客户端调用的话，使用服务器生成手雷函数并传入HitTarget参数，因为HitTarget是在LocallyContolled条件下赋值的，而生成手榴弹仅在服务端上，如果不使用RPC会造成错误的HitTarget，导致投掷位置不准确；  
+
+在CharacterOverlay中添加手榴弹的Text；  
+在PlayerController中添加HUDGrenades变量，和设置HUDGrenades的函数，因为该类可以直接调用到HUD；  
+在Combat组件中加入手雷数变量加入DOREPLIFETIME中，并且设置成replicated对应Notify函数用来更新手雷数HUD，添加最大手雷数和更新手雷HUD函数；  
+在扔手雷函数中每次减少手雷数量时（服务器判断），更新手雷数HUD，客户端通过Notify函数更新手雷数HUD即可；  
+
+
+## 九、拾取功能
+### 1. 拾取类
+添加父类Pickup，在其中添加虚函数OnSphereOverlap供子类继承，私有变量中添加OverlapSphere，PickupSound和PickupMesh，拾取时的粒子效果和组件；  
+在生成Pickup实例时进行初始化，设置Replicates为true，设置根节点并将OverlapSphere附着在上面，设置半径和碰撞检测；  
+游戏开始时在服务器上判断，给OverlapSphere动态绑定OnSphereOverlap函数；  
+在销毁时播放对应拾取物品的声音和拾取后的粒子效果； 
+初始化时设置Sphere的相对高度和Mesh的大小，开启Mesh的RenderCustomDepth（自定义深度渲染），并设置CustomDepthStencilValue（自定义深度模版值）为模版材质中的对应颜色，为拾取物品添加颜色轮廓；  
+在Tick函数中给Mesh的Y轴加一个旋转：`自定义旋转速率*DeltaTime`来使其在地面上不断旋转；  
+添加绑定物体重叠计时器，在一定时间后比如0.25秒再将OverlapSphere的Overlap事件动态绑定，否则会造成人物一直站在拾取点的话该位置不会重现其他任何拾取物品，因为Destroy发生的太快导致SpawnedPickup无法将OnDestroyed成功绑定并开启重生计时器；
+
+### 2. 子弹拾取
+继承自拾取类Pickup，重写其中的OnSphereOverlap函数，添加私有变量需要添加的子弹数量和武器类型；  
+因为需要增加的子弹数存储在人物类的Combat组件当中，所以在Combat类中添加PickupAmmo函数，传入对应武器类型和子弹数量，在携带武器与子弹数对应的哈希表中添加对应武器的子弹数，如果此时弹夹为空则直接执行换弹；  
+在子弹拾取类的OnSphereOverlap函数中获得重叠角色的Combat组件并执行PickupAmmo；  
+为每种不同的武器设置不同的蓝图类（均继承自子弹类），仅需设置对应的武器类型即可；
+
+### 3. Buff类
+类似Combat组件，我们添加Buff组件；  
+在人物类中添加该Buff组件，在PollInit中初始化Buff组件类中的Character为自己；  
+
+### 4. 生命值Buff拾取
+新建继承自Pickup的子类HealthPickup，添加私有变量治疗血量，治疗时间（用逐渐于缓慢恢复）；  
+初始化自己时设置bReplicates为true，创建拾取粒子效果组件；  
+在重叠时获取碰撞角色的Buff组件，并调用其中的Heal函数，传入治疗血量和治疗时间参数；  
+在Buff组件类中添加布尔变量bHealing来控制加血的开始和停止，添加治疗速率变量，治疗数量；  
+在Heal函数中设置bHealing为true，通过治疗数量 / 治疗时间来获得治疗速率（`治疗速率 * DeltaTime`则为每帧增加的血量）；  
+设置完变量后，在Tick函数中调用HealRampUp并传入DeltaTime，在这里判断是否需要增加血量，设置人物每帧的血量增加并更新HUD，AmountToHeal即为减去这一帧添加的血量后还需添加的血量，如果`AmountToHeal <= 0`或者人物已经满血了则设置bHealing为false并重置AmountToHeal为0；  
+
+### 5. 速度Buff拾取
+新建继承自Pickup的子类SpeedPickup，添加私有变量拾取buff后的速度值，下蹲速度值，加速持续时长；   
+重写父类的OnSphereOverlap函数，通过重叠角色获得Buff组件并调用Buff组件类中的BuffSpeed函数，传入以上三个参数；  
+Buff组件类中添加速度Buff持续时长计时器，重置速度函数，初始移动速度，初始下蹲速度和一个Multicast RPC用于传递MaxSpeed到客户端，BuffSpeed函数和设置初始速度函数；  
+在BuffSpeed函数中开启定时器，时间为BuffTime并在实践结束时调用重置速度函数，获取人物的Movement中的MaxWalkSpeed和MaxWalkSpeedCrouched并通过Multicast传播到其他客户端（否则会出现glitch）；  
+重置速度函数中要将人物速度设置成初始速度，同样记得使用Multicast RPC传播到客户端；  
+
+### 6. 跳跃Buff拾取
+同速度Buff类，添加私有变量Z轴跳跃高度，buff持续时长；  
+在OnSphereOverlap函数中调用Buff组件类中的BuffJump函数并传入上述参数；  
+在人物类中设置Buff组件中的初始跳跃高度；  
+在Buff组件类中的BuffJump函数中开启计时器并设置人物跳跃高度为传入参数，使用Multicast RPC传播到客户端；  
+
+### 7. 护盾Buff拾取
+在人物HUD的widget生命值下面新增护盾值的Bar和Text，并在CharacterOverlay中进行绑定；  
+类似生命值实现，在人物类中添加最大护盾值，护盾值（Replicated）和对应Notify函数，并添加更新护盾值HUD函数；  
+记得添加Shield为可复制的生命周期，在Notify函数中添加LastShield参数，如果当前护盾值小于之前护盾值则播放受击动画，调用更新护盾值的HUD函数；  
+更新护盾值HUD函数中通过PlayerController来设置护盾值和最大护盾值；  
+在PlayerController类中加入布尔变量bInitializeShiled（**为每个HUD变量添加布尔值判断**），HUDShield和HUDMaxShield变量（为了提前储存）和SetHUDShield函数，如果CharacterOverlay已经被实例化，则通过调用HUD来设置护盾值的比例大小，否则的话将传进来的参数存储在上述两个变量当中，**在PollInit函数中轮询初始化，如果布尔值为真则调用对应的SetHUD函数**；  
+
+通过在Character类的ReceiveDamage中来对伤害进行重新计算（当护盾值 > 0时）初始化对生命值造成的伤害为Damage：  
+- 如果护盾值高于伤害值，则护盾值等于Clamp（护盾值 - 伤害值，0，最大护盾值），对生命值造成的伤害则为0；
+- 如果护盾值小于伤害值，则设置护盾值为0，对生命值的伤害则为Clamp（对生命值造成的伤害 - 护盾值，0，最大生命值）；
+- 最后的生命值大小则为Clamp（生命值 - 对生命值造成的伤害，0，最大生命值）；
+- 更新HUDHealth和HUDShield
+
+护盾Buff拾取同生命值Buff拾取；
+
+### 8. 拾取物品随机出生点
+新增PickupSpawnPoint类，在其中添加TArray动态数组容器来存放Pickup类的集合（设置为EditAnyWhere在蓝图类中往数组里添加类），添加出生物品Pickup类，SpawnPickup函数和对应计时器，其中时间为一个Range，在最小复活时间和最大复活时间内；  
+这里注意开启计时器函数中需要传入DestroyedActor参数，为了满足委托函数签名的要求；  
+在SpawnPickup函数通过容器中Pickup类中的数量来RandRange随机选取其中一个拾取类，通过World生成拾取类并赋值给SpawnedPickup（为了在服务器端将它的OnDestroyed绑定到开启计时器函数上，注意这里为了使其成功绑定在Pickup类中为Overlap添加了计时器），因为它开启了Replicate，所以只需在服务端生成，在计时器时间结束后再重新调用SpawnPickup函数；  
+
+### 9. 人物出生时的默认武器
+在Character类中添加默认武器类`TSubclassOf<Weapon> DefaultWeaponClass`并设置宏为EditAnyWhere在蓝图中设置默认武器，添加生成默认武器函数；  
+在生成默认武器函数中，通过获取当前的GameMode来判断是否是战斗关卡，如果是战斗关卡并人物没有被击杀，则生成当前默认武器并设置布尔变量bDestroyWeapon为true（为了后续击杀该角色时武器不会掉落并在关卡中堆积）并通过Combat组件来装备该武器；  
+在Elim函数中判断，如果Combat组件装备的武器的布尔变量bDestroyWeapon（武器类中新增）为true的话就销毁该武器，否则的话使武器掉落；  
+在BeginPlay中掉用生成默认武器函数并更新子弹的HUD，！注：
+人物类可能初始化的太快了，所以在BeginPlay时人物初始化时，在PlayerController中处理初始化CharacterOverlay的函数还没有完成，即当匹配状态进入到InProgress时才会将CharacterOverlay初始化完毕，所以要在人物类中的tick函数中poll轮询初始化，当初始化PlayerController时更新所有HUD；  
+
+
+### 10. 副武器
+在人物骨骼的背包上添加另一个Socket用于绑定副武器的位置；  
+同绑定在右手或左手函数，添加绑定到背后函数；  
+添加副武器类（replicated）并添加对应notify函数；  
+添加装备主武器函数和装备副武器函数，参数为AWeapon类；  
+将之前Equip函数中的部分代码封装，调整代码结构：如果主武器不为空并且副武器为空，则调用装备副武器函数，否则的话调用装备主武器函数（主武器为空条件下）；  
+装备主武器操作如下：
+- 如果装备了武器则扔掉现有武器
+- 设置EquippedWeapon
+- 设置武器状态为Equipped
+- 附着到右手Socket
+- 设置EquippedWeapon的Owner
+- 设置EquippedWeapon的子弹HUD
+- 播放对应武器装备音效
+- 如果弹夹为空直接执行换弹操作
+
+装备副武器操作如下：
+- 设置SecondaryWeapon
+- 设置SecondaryWeapon武器状态为EquippedSecondary
+- 附着到背后Socket
+- 播放对应武器装备音效
+- 设置SecondaryWeapon的Owner
+
+### 11. 切换武器
+按照OnMatchState的方式，重写Character类中的OnWeaponStateSet函数；  
+在设置武器状态函数中为武器状态赋值并调用OnWeaponStateSet函数；  
+在OnWeaponStateSet函数中，如果状态为Equipped则调用OnEquipped函数，如状态为EquippedSecondary则调用OnEquippedSecondary函数，如果状态为Dropped则调用OnDropped函数；  
+在上述函数中处理Mesh碰撞检测设置以及武器轮廓颜色等功能，并在WeaponState的Notify函数中同样调用OnWeaponStateSet函数使其传播到客户端；  
+在Combat类中的Swap函数中，切换主副武器变量（通过临时变量），设置武器状态，将主武器附着到右手，更新HUD，播放装备武器声音，设置服务器状态并附着到背包上；  
+在人物类的ServerEquipPressed函数中判断，如果有OverlapingWeapon则调用装备武器函数，否则判断是否能够切换武器并执行切换武器函数（如果装备了第二把武器按E键切换）；  
+在Elim函数中调用DropOrDestroyWeapons函数，通过布尔变量bDestroyWeapon来判断是应该摧毁武器还是扔掉武器
