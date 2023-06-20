@@ -49,4 +49,11 @@ public:
 
 	UPROPERTY(meta=(BindWidget))
 	UTextBlock* GrenadesText;
+
+	UPROPERTY(meta=(BindWidget))
+	class UImage* HighPingImage;
+
+	// 不会被序列化或保存，而是每次重新加载
+	UPROPERTY(meta=(BindWidgetAnim), Transient)
+	UWidgetAnimation* HighPingAnimation;
 };
