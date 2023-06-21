@@ -627,3 +627,28 @@ Buff组件类中添加速度Buff持续时长计时器，重置速度函数，初
 - 本地开火：因为开火键中触发的功能是人物开火动画武器开火动画以及projectile生成，这些功能可以转移到本地实现来消除RPC延迟，但同样需要服务端RPC传递分发到其他客户端上响应动画，需要在Multicast中判断如果在当前控制客户端上就直接返回不执行LocalFire（这里一开始没有删除!HasAuthority()出现了服务端调用两次localFire的bug）；  
 这里不小心把MulticastFire中调用LocalFire的函数参数写为了HitTarget而不是服务端传进来的TraceHitTarget，导致射线目标不准确打不到人甚至误伤自己，这里Projectile的碰撞体碰撞检测只发生在服务端；  
 - 本地捡起武器widget：可以把判断拾取武器AreaSphere从仅在服务端执行的条件中拿出来，因为仅仅是在客户端展现widget的功能；但需要由服务器负责装备武器功能，否则如果当两个客户端同时打算拾取同一把武器时，会造成冲突；  
+
+### 3. 同步弹道扩散
+新增开火类型，里面分别添加：Porjectile武器，Hitscan武器，Shotgun武器，为这三种开火功能不同的武器添加Fire函数，在人物按下开火键时进行判断是哪种武器就执行哪种开火逻辑；  
+将Hitscan武器类中的处理弹道扩散的函数逻辑以及变量转移到父类Weapon类中，在Hitscan武器执行开火函数之前首先对HitTarget进行射线的扩散目标赋值，这样传到服务端对应Fire函数中的HitTarget就与本地客户端一致了；  
+为霰弹枪添加自己的ShotgunTraceEndWithScatter来为HitTargets赋值，因为霰弹枪会射出多发子弹，我们不想等待一个一个上传到服务器，而是预先计算好HitTargets把他们一起送进Fire函数；
+
+### 4. 客户端预测法
+通过记录RPC信息，来弥补客户端预测法因为往返时间信息差的不足:  
+![Clientside Prediction1](./pictures/Clientside%20Prediction1.png)
+
+记录每一次传递RPC的信息，如果发现服务器传递回的RPC信息是老的信息，不是最新的信息，则抛弃旧信息，更正为新的信息等待下一次RPC发送:
+![Clientside Prediction2](./pictures/Clientside%20Prediction2.png) 
+
+UE引擎的Character Movement已经实现了客户端预测法，我们要对子弹使用该方法；
+
+### 5. 客户端预测子弹
+假设这样一个情形，当我们在客户端执行开火的时候，会走一个ServerFire和一个LocalFire，LocalFire主要用来在本地客户端直接播放开火动画音效等，而ServerFire则是通过从本地客户端走一个Server的RPC到达服务端，并在服务端执行Multicast中同样调用LocalFire函数，就此可以将本地客户端播放开火动画音效等效果出现在其他客户端上；  
+伤害判断的逻辑我们仅放在服务器HasAuthority上判断，然而为了仅让服务器管理验证子弹的更新，我们这里使用改进的客户端预测法：  
+每次执行LocalFire时先将子弹数 - 1并且设置子弹的HUD，如果此时是在客户端上我们增加Sequence的数量（代表客户端执行了一次开火并发送了一次RPC），如果是服务端便调用客户端的RPC来更新子弹数（这里在客户端RPC中需要判断不是在服务端本地发起的开火请求），设置子弹数为服务端传进来的权威子弹数，并且减少一次Sequence的数量（代表处理了一次RPC），让子弹减少剩余的Sequence数量（即代表本地客户端执行了多少次开火，并还有未处理的RPC请求），设置此时的子弹HUD，这样就不会造成客户端子弹与服务端不同导致反复抖动的情况；而添加子弹已经在服务端上执行，并且是一次性添加，就不再需要实现客户端预测法；
+
+### 6. 客户端预测瞄准
+这个相对要更简单一些，只需多加入一个布尔值判断；  
+在客户端调用瞄准函数或释放右键瞄准时，通过函数传进来的bIsAiming参数，在本地客户端通过一个布尔值bAimButtonPressed来存放，并在bAiming（Replicated）的Notify函数中判断，如果是本地控制客户端，就将播放瞄准动画的布尔值变量bAiming设置为本地客户端的bAimButtonPressed即可；  
+通过这种方法就不会导致在高延迟情况下，当喵准释放一次后立即松开，由于这个速度非常快，导致在客户端调用ServerSetAiming（Server RPC），服务端再传播到客户端时出现两次瞄准和释放，解决办法就是：  
+通过bAiming的Notify函数设置当传回的是本地控制客户端时，将bAiming设置成本地存储的bAimButtonPressed，保持与本地客户端一致而不受服务器的干扰；  
