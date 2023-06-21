@@ -18,6 +18,16 @@ enum class EWeaponState : uint8
 	EWS_MAX UMETA(DisplayName = "DefaultMax")
 };
 
+UENUM(BlueprintType)
+enum class EFireType : uint8
+{
+	EWT_HitScan UMETA(DisplayName = "Hit Scan Weapon"),
+	EWT_Projectile UMETA(DisplayName = "Projectile Weapon"),
+	EWT_Shotgun UMETA(DisplayName = "Shotgun Weapon"),
+
+	EWT_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
 UCLASS()
 class BLASTER_API  AWeapon : public AActor
 {
@@ -34,6 +44,7 @@ public:
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
 	void AddAmmo(int32 AmmoToAdd);
+	FVector TraceEndWithScatter(const FVector& HitTarget);
 
 	/*
 	* 瞄准十字
@@ -81,6 +92,12 @@ public:
 	void EnableCustomDepth(bool bEnable);
 
 	bool bDestroyedWeapon = false;
+
+	UPROPERTY(EditAnywhere)
+	EFireType FireType;
+
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	bool bUseScatter = false;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -106,6 +123,16 @@ protected:
 			UPrimitiveComponent* OtherComp,
 			int32 OtherBodyIndex
 		);
+
+	/*
+	 * 子弹扩散追踪
+	 */
+
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	float DistanceToSphere = 800.f;
+
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	float SphereRadius = 75.f;
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category="Weapon Properties")
@@ -129,16 +156,22 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass; // 子弹壳类
 
-	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Ammmo)
+	UPROPERTY(EditAnywhere)
 	int32 Ammo;
 
-	UFUNCTION()
-	void OnRep_Ammmo();
+	UFUNCTION(Client, Reliable)
+	void ClientUpdateAmmo(int32 ServerAmmo);
 
+	UFUNCTION(Client, Reliable)
+	void ClientAddAmmo(int32 AmmoToAdd);
+	
 	void SpendRound();
 
 	UPROPERTY(EditAnywhere)
 	int32 MagCapacity;
+	
+	// 针对子弹更新的，模拟RPC的传递数量
+	int32 Sequence = 0;
 
 	UPROPERTY()
 	class ABlasterCharacter* BlasterOwnerCharacter;
