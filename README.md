@@ -652,3 +652,5 @@ UE引擎的Character Movement已经实现了客户端预测法，我们要对子
 在客户端调用瞄准函数或释放右键瞄准时，通过函数传进来的bIsAiming参数，在本地客户端通过一个布尔值bAimButtonPressed来存放，并在bAiming（Replicated）的Notify函数中判断，如果是本地控制客户端，就将播放瞄准动画的布尔值变量bAiming设置为本地客户端的bAimButtonPressed即可；  
 通过这种方法就不会导致在高延迟情况下，当喵准释放一次后立即松开，由于这个速度非常快，导致在客户端调用ServerSetAiming（Server RPC），服务端再传播到客户端时出现两次瞄准和释放，解决办法就是：  
 通过bAiming的Notify函数设置当传回的是本地控制客户端时，将bAiming设置成本地存储的bAimButtonPressed，保持与本地客户端一致而不受服务器的干扰；  
+
+### 7. 客户端预测换弹
