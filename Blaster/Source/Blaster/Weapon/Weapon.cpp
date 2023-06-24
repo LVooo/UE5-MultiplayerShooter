@@ -19,7 +19,8 @@ AWeapon::AWeapon()
 	bReplicates = true; // 设置该武器可以被复制到服务器端和客户端上
 	SetReplicateMovement(true); // 同步服务端和客户端的武器位置
 
-	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeapnMesh"));
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(
+		TEXT("WeapnMesh"));
 	SetRootComponent(WeaponMesh); // 将mesh设置为root
 	
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block); // 物理模拟体上的碰撞响应
