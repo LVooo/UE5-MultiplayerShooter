@@ -4,6 +4,7 @@
 #include "LagCompensationComponent.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ULagCompensationComponent::ULagCompensationComponent()
 {
@@ -11,26 +12,78 @@ ULagCompensationComponent::ULagCompensationComponent()
 
 }
 
-
 void ULagCompensationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-void ULagCompensationComponent::SaveFramePackage(FramePackage& Package)
+void ULagCompensationComponent::CacheBoxPositions(ABlasterCharacter* HitCharacter, FramePackage& OutFramePackage)
 {
-	Character = Character == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : Character;
-	if (Character)
+	if (HitCharacter == nullptr) return;
+	for (auto& HitBoxPairs : HitCharacter->HitCollisionBoxes)
 	{
-		Package.Time = GetWorld()->GetTimeSeconds();
-		for (auto& BoxPairs : Character->HitCollisionBoxes)
+		if (HitBoxPairs.Value != nullptr)
 		{
-			FBoxInformation BoxInformation;
-			BoxInformation.Location = BoxPairs.Value->GetComponentLocation();
-			BoxInformation.Rotation = BoxPairs.Value->GetComponentRotation();
-			BoxInformation.BoxExtent = BoxPairs.Value->GetScaledBoxExtent();
-			Package.HitBoxInfo.Add(BoxPairs.Key, BoxInformation);
+			FBoxInformation BoxInfo;
+			BoxInfo.Location = HitBoxPairs.Value->GetComponentLocation();
+			BoxInfo.Rotation = HitBoxPairs.Value->GetComponentRotation();
+			BoxInfo.BoxExtent = HitBoxPairs.Value->GetScaledBoxExtent();
+			OutFramePackage.HitBoxInfo.Add(HitBoxPairs.Key, BoxInfo);
 		}
+	}
+}
+
+void ULagCompensationComponent::MoveBoxes(ABlasterCharacter* HitCharacter, const FramePackage& Package)
+{
+	if (HitCharacter == nullptr) return;
+	for (auto& HitBoxPairs : HitCharacter->HitCollisionBoxes)
+	{
+		if (HitBoxPairs.Value != nullptr)
+		{
+			HitBoxPairs.Value->SetWorldLocation(Package.HitBoxInfo[HitBoxPairs.Key].Location);
+			HitBoxPairs.Value->SetWorldRotation(Package.HitBoxInfo[HitBoxPairs.Key].Rotation);
+			HitBoxPairs.Value->SetBoxExtent(Package.HitBoxInfo[HitBoxPairs.Key].BoxExtent);
+		}
+	}
+}
+
+void ULagCompensationComponent::ResetHitBoxes(ABlasterCharacter* HitCharacter, const FramePackage& Package)
+{
+	if (HitCharacter == nullptr) return;
+	for (auto& HitBoxPairs : HitCharacter->HitCollisionBoxes)
+	{
+		if (HitBoxPairs.Value != nullptr)
+		{
+			HitBoxPairs.Value->SetWorldLocation(Package.HitBoxInfo[HitBoxPairs.Key].Location);
+			HitBoxPairs.Value->SetWorldRotation(Package.HitBoxInfo[HitBoxPairs.Key].Rotation);
+			HitBoxPairs.Value->SetBoxExtent(Package.HitBoxInfo[HitBoxPairs.Key].BoxExtent);
+			HitBoxPairs.Value->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+}
+
+void ULagCompensationComponent::EnableCharacterMeshCollision(ABlasterCharacter* HitCharacter,
+	ECollisionEnabled::Type CollisionEnabled)
+{
+	if (HitCharacter && HitCharacter->GetMesh())
+	{
+		HitCharacter->GetMesh()->SetCollisionEnabled(CollisionEnabled);
+	}
+}
+
+void ULagCompensationComponent::ShowFramePackage(const FramePackage& Package, const FColor& Color)
+{
+	for (auto& BoxInfo : Package.HitBoxInfo)
+	{
+		DrawDebugBox(
+			GetWorld(),
+			BoxInfo.Value.Location,
+			BoxInfo.Value.BoxExtent,
+			FQuat(BoxInfo.Value.Rotation),
+			Color,
+			false,
+			4.f
+			);
 	}
 }
 
@@ -62,31 +115,208 @@ FramePackage ULagCompensationComponent::InterpBetweenFrames(const FramePackage& 
 	return InterpFramePackage;
 }
 
-void ULagCompensationComponent::ShowFramePackage(const FramePackage& Package, const FColor& Color)
+FServerSideRewindResult ULagCompensationComponent::ConfirmHit(const FramePackage& Package,
+	ABlasterCharacter* HitCharacter, const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation)
 {
-	for (auto& BoxInfo : Package.HitBoxInfo)
+	if (HitCharacter == nullptr) return FServerSideRewindResult();
+
+	FramePackage CurrentFrame;
+	// 给当前的Frame赋值，存储
+	CacheBoxPositions(HitCharacter, CurrentFrame);
+	// 将人物Box移动到发送来的Package处
+	MoveBoxes(HitCharacter, Package);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::NoCollision);
+
+	// 先开启头部检测
+	UBoxComponent* HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
+	HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HeadBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+
+	FHitResult ConfirmHitResult;
+	const FVector TraceEnd = TraceStart + (HitLocation - TraceStart) * 1.25f;
+	UWorld* World = GetWorld();
+	if (World)
 	{
-		DrawDebugBox(
-			GetWorld(),
-			BoxInfo.Value.Location,
-			BoxInfo.Value.BoxExtent,
-			FQuat(BoxInfo.Value.Rotation),
-			Color,
-			false,
-			4.f
+		World->LineTraceSingleByChannel(
+			ConfirmHitResult,
+			TraceStart,
+			TraceEnd,
+			ECollisionChannel::ECC_Visibility
 			);
+		// 如果我们命中了头部那么提前返回
+		if (ConfirmHitResult.bBlockingHit)
+		{
+			ResetHitBoxes(HitCharacter, CurrentFrame);
+			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+			return FServerSideRewindResult{ true, true };
+		}
+		else // 没有命中头部，那我们检验剩下的盒状体
+		{
+			for (auto& HitBoxPair : HitCharacter->HitCollisionBoxes)
+			{
+				if (HitBoxPair.Value != nullptr)
+				{
+					HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+					HitBoxPair.Value->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+				}
+			}
+			World->LineTraceSingleByChannel(
+				ConfirmHitResult,
+				TraceStart,
+				TraceEnd,
+				ECollisionChannel::ECC_Visibility
+				);
+			if (ConfirmHitResult.bBlockingHit)
+			{
+				ResetHitBoxes(HitCharacter, CurrentFrame);
+				EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+				return FServerSideRewindResult{ true, false };
+			}
+		}
 	}
+
+	ResetHitBoxes(HitCharacter, CurrentFrame);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+	return FServerSideRewindResult{ false, false };
 }
 
-void ULagCompensationComponent::ServerSideRewind(ABlasterCharacter* HitCharacter, const FVector_NetQuantize& TraceStart,
+FShotgunServerSideRewindResult ULagCompensationComponent::ShoutgunConfirmHit(const TArray<FramePackage>& FramePackages,
+	const FVector_NetQuantize& TraceStart, const TArray<FVector_NetQuantize>& HitLocations)
+{
+
+	for (auto& Frame : FramePackages)
+	{
+		if (Frame.Character == nullptr) return FShotgunServerSideRewindResult();
+	}
+	FShotgunServerSideRewindResult ShotgunResult;
+	TArray<FramePackage> CurrentFrames;
+	for (auto& Frame : FramePackages)
+	{
+		FramePackage CurrentFrame;
+		CurrentFrame.Character = Frame.Character;
+		CacheBoxPositions(Frame.Character, CurrentFrame);
+		MoveBoxes(Frame.Character, Frame);
+		EnableCharacterMeshCollision(Frame.Character, ECollisionEnabled::NoCollision);
+		CurrentFrames.Add(CurrentFrame);
+	}
+
+	for (auto& Frame : FramePackages)
+	{
+		// 开启头部碰撞检测
+		UBoxComponent* HeadBox = Frame.Character->HitCollisionBoxes[FName("head")];
+		HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		HeadBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	}
+
+	UWorld* World = GetWorld();
+	for (auto& HitLocation : HitLocations)
+	{
+		FHitResult ConfirmHitResult;
+		const FVector TraceEnd = TraceStart + (HitLocation - TraceStart) * 1.25f;
+		if (World)
+		{
+			World->LineTraceSingleByChannel(
+				ConfirmHitResult,
+				TraceStart,
+				TraceEnd,
+				ECollisionChannel::ECC_Visibility
+				);
+			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(ConfirmHitResult.GetActor());
+			if (BlasterCharacter)
+			{
+				if (ShotgunResult.HeadShots.Contains(BlasterCharacter))
+				{
+					ShotgunResult.HeadShots[BlasterCharacter] ++;
+				}
+				else
+				{
+					ShotgunResult.HeadShots.Emplace(BlasterCharacter, 1);
+				}
+			}
+		}
+	}
+
+	// 开启所有boxes的碰撞，禁用头部碰撞
+	for (auto& Frame : FramePackages)
+	{
+		for (auto& HitBoxPair : Frame.Character->HitCollisionBoxes)
+		{
+			if (HitBoxPair.Value != nullptr)
+			{
+				HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				HitBoxPair.Value->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+			}
+		}
+		UBoxComponent* HeadBox = Frame.Character->HitCollisionBoxes[FName("head")];
+		HeadBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// 检查身体命中
+	for (auto& HitLocation : HitLocations)
+	{
+		FHitResult ConfirmHitResult;
+		const FVector TraceEnd = TraceStart + (HitLocation - TraceStart) * 1.25f;
+		if (World)
+		{
+			World->LineTraceSingleByChannel(
+				ConfirmHitResult,
+				TraceStart,
+				TraceEnd,
+				ECollisionChannel::ECC_Visibility
+				);
+			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(ConfirmHitResult.GetActor());
+			if (BlasterCharacter)
+			{
+				if (ShotgunResult.BodyShots.Contains(BlasterCharacter))
+				{
+					ShotgunResult.BodyShots[BlasterCharacter] ++;
+				}
+				else
+				{
+					ShotgunResult.BodyShots.Emplace(BlasterCharacter, 1);
+				}
+			}
+		}
+	}
+
+	for (auto& Frame : CurrentFrames)
+	{
+		ResetHitBoxes(Frame.Character, Frame);
+		EnableCharacterMeshCollision(Frame.Character, ECollisionEnabled::QueryAndPhysics);
+	}
+	
+	return ShotgunResult;
+}
+
+
+FServerSideRewindResult ULagCompensationComponent::ServerSideRewind(ABlasterCharacter* HitCharacter, const FVector_NetQuantize& TraceStart,
 	const FVector_NetQuantize& HitLocation, float HitTime)
+{
+	FramePackage FrameToCheck = GetFrameToCheck(HitCharacter, HitTime);
+	return ConfirmHit(FrameToCheck, HitCharacter, TraceStart, HitLocation);
+}
+
+FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunServerSideRewind(
+	const TArray<ABlasterCharacter*> HitCharacters, const FVector_NetQuantize& TraceStart,
+	const TArray<FVector_NetQuantize>& HitLocations, float HitTime)
+{
+	TArray<FramePackage> FramesToCheck;
+	for (ABlasterCharacter* HitCharacter : HitCharacters)
+	{
+		FramesToCheck.Add(GetFrameToCheck(HitCharacter, HitTime));
+	}
+
+	return ShoutgunConfirmHit(FramesToCheck, TraceStart, HitLocations);
+}
+
+FramePackage ULagCompensationComponent::GetFrameToCheck(ABlasterCharacter* HitCharacter, float HitTime)
 {
 	bool bReturn =
 		HitCharacter == nullptr ||
 			HitCharacter->GetLagCompensation() == nullptr ||
 				HitCharacter->GetLagCompensation()->FrameHistory.GetHead() == nullptr ||
 					HitCharacter->GetLagCompensation()->FrameHistory.GetTail() == nullptr;
-	if (bReturn) return;
+	if (bReturn) return FramePackage();
 
 	// 我们用来验证是否命中的frame package
 	FramePackage FrameToCheck;
@@ -98,7 +328,7 @@ void ULagCompensationComponent::ServerSideRewind(ABlasterCharacter* HitCharacter
 	if (OldestHistoryTime > HitTime)
 	{
 		// 时间过于久远，客户端延迟过高，不使用服务器倒带算法
-		return;
+		return FramePackage();
 	}
 	if (OldestHistoryTime == HitTime)
 	{
@@ -134,13 +364,69 @@ void ULagCompensationComponent::ServerSideRewind(ABlasterCharacter* HitCharacter
 	{
 		// 在Older和Younger时间之间Interpolate
 	}
-	
+
+	FrameToCheck.Character = HitCharacter;
+	return FrameToCheck;
+}
+
+void ULagCompensationComponent::ServerScoreRequest_Implementation(ABlasterCharacter* HitCharacter,
+                                                                  const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation, float HitTime, AWeapon* DamageCauser)
+{
+	FServerSideRewindResult Confirm = ServerSideRewind(HitCharacter, TraceStart, HitLocation, HitTime);
+
+	if (Character && HitCharacter && DamageCauser && Confirm.bHitConfirmed)
+	{
+		UGameplayStatics::ApplyDamage(
+			HitCharacter,
+			DamageCauser->GetDamage(),
+			Character->Controller,
+			DamageCauser,
+			UDamageType::StaticClass()
+			);
+	}
+}
+
+void ULagCompensationComponent::ShotgunServerScoreRequest_Implementation(
+	const TArray<ABlasterCharacter*>& HitCharacters, const FVector_NetQuantize& TraceStart,
+	const TArray<FVector_NetQuantize>& HitLocations, float HitTime)
+{
+	FShotgunServerSideRewindResult Confirm = ShotgunServerSideRewind(HitCharacters, TraceStart, HitLocations, HitTime);
+
+	for (auto& HitCharacter : HitCharacters)
+	{
+		if (HitCharacter == nullptr || HitCharacter->GetEquippedWeapon() == nullptr || Character == nullptr) continue;
+		float TotalDamage = 0.f;
+		if (Confirm.HeadShots.Contains(HitCharacter))
+		{
+			float HeadShotDamage = Confirm.HeadShots[HitCharacter] * HitCharacter->GetEquippedWeapon()->GetDamage();
+			TotalDamage += HeadShotDamage;
+		}
+		if (Confirm.BodyShots.Contains(HitCharacter))
+		{
+			float BodyShotDamage = Confirm.BodyShots[HitCharacter] * HitCharacter->GetEquippedWeapon()->GetDamage();
+			TotalDamage += BodyShotDamage;
+		}
+
+		UGameplayStatics::ApplyDamage(
+			HitCharacter,
+			TotalDamage,
+			Character->Controller,
+			HitCharacter->GetEquippedWeapon(),
+			UDamageType::StaticClass()
+			);
+	}
 }
 
 void ULagCompensationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	SaveFramePackage();
+}
+
+void ULagCompensationComponent::SaveFramePackage()
+{
+	if(Character == nullptr || !Character->HasAuthority()) return;
 	if (FrameHistory.Num() <= 1)
 	{
 		FramePackage ThisFrame;
@@ -159,6 +445,24 @@ void ULagCompensationComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		SaveFramePackage(ThisFrame);
 		FrameHistory.AddHead(ThisFrame);
 
-		ShowFramePackage(ThisFrame, FColor::Red);
+		// ShowFramePackage(ThisFrame, FColor::Red);
+	}
+}
+
+void ULagCompensationComponent::SaveFramePackage(FramePackage& Package)
+{
+	Character = Character == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : Character;
+	if (Character)
+	{
+		Package.Time = GetWorld()->GetTimeSeconds();
+		Package.Character = Character;
+		for (auto& BoxPairs : Character->HitCollisionBoxes)
+		{
+			FBoxInformation BoxInformation;
+			BoxInformation.Location = BoxPairs.Value->GetComponentLocation();
+			BoxInformation.Rotation = BoxPairs.Value->GetComponentRotation();
+			BoxInformation.BoxExtent = BoxPairs.Value->GetScaledBoxExtent();
+			Package.HitBoxInfo.Add(BoxPairs.Key, BoxInformation);
+		}
 	}
 }

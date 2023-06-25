@@ -20,4 +20,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AProjectile> ProjectileClass; //  用于在运行时指定生成的子弹类型，这样可以方便地切换不同的子弹类型而不需要修改代码
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AProjectile> ServerSideRewindProjectileClass; // 用于本地生成的子弹，non-replicated
+
 };

@@ -40,8 +40,7 @@ AWeapon::AWeapon()
 	PickupWidget->SetupAttachment(RootComponent);
 }
 
-void AWeapon::
-EnableCustomDepth(bool bEnable)
+void AWeapon::EnableCustomDepth(bool bEnable)
 {
 	if (WeaponMesh)
 	{

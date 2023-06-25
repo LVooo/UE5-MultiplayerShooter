@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "WeaponTypes.h"
+#include "Framework/Docking/LayoutExtender.h"
 #include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
@@ -133,6 +134,17 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
 	float SphereRadius = 75.f;
+
+	UPROPERTY(EditAnywhere)
+	float Damage = 20.f;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseServerSideRewind = false;
+	
+	UPROPERTY()
+	class ABlasterCharacter* BlasterOwnerCharacter;
+	UPROPERTY()
+	class ABlasterPlayerController* BlasterOwnerController;
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category="Weapon Properties")
@@ -173,11 +185,6 @@ private:
 	// 针对子弹更新的，模拟RPC的传递数量
 	int32 Sequence = 0;
 
-	UPROPERTY()
-	class ABlasterCharacter* BlasterOwnerCharacter;
-	UPROPERTY()
-	class ABlasterPlayerController* BlasterOwnerController;
-
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 	
@@ -192,4 +199,5 @@ public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
+	FORCEINLINE float GetDamage() const { return Damage; }
 };
