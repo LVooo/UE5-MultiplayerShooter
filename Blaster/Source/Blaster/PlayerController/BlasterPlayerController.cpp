@@ -66,6 +66,7 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 			if (PlayerState->GetCompressedPing() * 4 > HighPingThreshould)
 			{
 				HighPingWarning();
+				ServerReportPingStatus(true);
 				/*PingAnimationRunningTime = 0.f;*/
 				
 				// 改成计时器方法
@@ -79,6 +80,10 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 						HighPingDuration
 						);	
 				}
+			}
+			else
+			{
+				ServerReportPingStatus(false);
 			}
 		}
 		HighPingRunningTime = 0.f;
@@ -96,6 +101,11 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 			StopHighPingWarning();
 		}
 	}*/
+}
+
+void ABlasterPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
+{
+	HighPingDelegate.Broadcast(bHighPing);
 }
 
 void ABlasterPlayerController::HighPingWarning()
@@ -520,7 +530,7 @@ void ABlasterPlayerController::OnRep_MatchState()
 	}
 }
 
-	void ABlasterPlayerController::HandleMatchHasStarted()
+void ABlasterPlayerController::HandleMatchHasStarted()
 {
 	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
 	if (BlasterHUD)

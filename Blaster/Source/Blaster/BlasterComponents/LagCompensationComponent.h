@@ -73,12 +73,29 @@ public:
 	virtual void ShowFramePackage(const FramePackage& Package, const FColor& Color);
 	
 	// 服务器倒带算法
+	/*
+	 * 针对HitScan
+	 */
 	FServerSideRewindResult ServerSideRewind(
 		class ABlasterCharacter* HitCharacter,
 		const FVector_NetQuantize& TraceStart,
 		const FVector_NetQuantize& HitLocation,
-		float HitTime);
+		float HitTime
+		);
 
+	/*
+	 * 针对Projectile
+	 */
+	FServerSideRewindResult ProjectileServerSideRewind(
+		class ABlasterCharacter* HitCharacter,
+		const FVector_NetQuantize& TraceStart,
+		const FVector_NetQuantize100& InitialVelocity,
+		float HitTime
+		);
+
+	/*
+	 * 针对Shotgun
+	 */
 	FShotgunServerSideRewindResult ShotgunServerSideRewind(
 	const TArray<ABlasterCharacter*> HitCharacters,
 	const FVector_NetQuantize& TraceStart,
@@ -96,6 +113,14 @@ public:
 		);
 
 	UFUNCTION(Server, Reliable)
+	void ProjectileServerScoreRequset(
+		ABlasterCharacter* HitCharacter,
+		const FVector_NetQuantize& TraceStart,
+		const FVector_NetQuantize100& InitialVelocity,
+		float HitTime
+		);
+
+	UFUNCTION(Server, Reliable)
 	void ShotgunServerScoreRequest(
 		const TArray<ABlasterCharacter*>& HitCharacters,
 		const FVector_NetQuantize& TraceStart,
@@ -107,24 +132,36 @@ protected:
 	virtual void BeginPlay() override;
 	void SaveFramePackage(FramePackage& Package);
 	FramePackage InterpBetweenFrames(const FramePackage& OlderFrame, const FramePackage& YoungerFrame, float HitTime);
-	FServerSideRewindResult ConfirmHit(
-		const FramePackage& Package,
-		ABlasterCharacter* HitCharacter,
-		const FVector_NetQuantize& TraceStart,
-		const FVector_NetQuantize& HitLocation
-		);
 	void CacheBoxPositions(ABlasterCharacter* HitCharacter, FramePackage& OutFramePackage);
 	void MoveBoxes(ABlasterCharacter* HitCharacter, const FramePackage& Package);
 	void ResetHitBoxes(ABlasterCharacter* HitCharacter, const FramePackage& Package);
 	void EnableCharacterMeshCollision(ABlasterCharacter* HitCharacter, ECollisionEnabled::Type CollisionEnabled);
 	void SaveFramePackage();
 	FramePackage GetFrameToCheck(ABlasterCharacter* HitCharacter, float HitTime);
+	/*
+	 * Hitscan
+	 */
+	FServerSideRewindResult ConfirmHit(
+		const FramePackage& Package,
+		ABlasterCharacter* HitCharacter,
+		const FVector_NetQuantize& TraceStart,
+		const FVector_NetQuantize& HitLocation
+		);
 
+	/*
+	 * Projectile
+	 */
+	FServerSideRewindResult ProjectileConfirmHit(
+		const FramePackage& Package,
+		ABlasterCharacter* HitCharacter,
+		const FVector_NetQuantize& TraceStart,
+		const FVector_NetQuantize100& InitialVelocity,
+		float HitTime
+		);
+	
 	/*
 	 * 霰弹枪
 	 */
-
-
 	FShotgunServerSideRewindResult ShoutgunConfirmHit(
 		const TArray<FramePackage>& FramePackages,
 		const FVector_NetQuantize& TraceStart,
