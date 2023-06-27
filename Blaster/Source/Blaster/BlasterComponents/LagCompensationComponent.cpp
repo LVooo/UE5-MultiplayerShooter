@@ -430,7 +430,7 @@ FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunServerSideRewin
 
 FramePackage ULagCompensationComponent::GetFrameToCheck(ABlasterCharacter* HitCharacter, float HitTime)
 {
-	/*bool bReturn =
+	bool bReturn =
 		HitCharacter == nullptr ||
 			HitCharacter->GetLagCompensation() == nullptr ||
 				HitCharacter->GetLagCompensation()->FrameHistory.GetHead() == nullptr ||
@@ -486,9 +486,9 @@ FramePackage ULagCompensationComponent::GetFrameToCheck(ABlasterCharacter* HitCh
 	}
 
 	FrameToCheck.Character = HitCharacter;
-	return FrameToCheck;*/
+	return FrameToCheck;
 
-	bool bReturn =
+	/*bool bReturn =
 	HitCharacter == nullptr ||
 	HitCharacter->GetLagCompensation() == nullptr ||
 	HitCharacter->GetLagCompensation()->FrameHistory.GetHead() == nullptr ||
@@ -540,7 +540,7 @@ FramePackage ULagCompensationComponent::GetFrameToCheck(ABlasterCharacter* HitCh
 		FrameToCheck = InterpBetweenFrames(Older->GetValue(), Younger->GetValue(), HitTime);
 	}
 	FrameToCheck.Character = HitCharacter;
-	return FrameToCheck;
+	return FrameToCheck;*/
 }
 
 void ULagCompensationComponent::ServerScoreRequest_Implementation(ABlasterCharacter* HitCharacter,
@@ -634,7 +634,7 @@ void ULagCompensationComponent::SaveFramePackage()
 		}
 		FramePackage ThisFrame;
 		SaveFramePackage(ThisFrame);
-		FrameHistory.AddHead(ThisFrame);
+		FrameHistory.AddTail(ThisFrame);
 
 		// ShowFramePackage(ThisFrame, FColor::Red);
 	}
