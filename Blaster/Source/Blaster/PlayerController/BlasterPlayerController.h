@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blaster/Weapon/WeaponTypes.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
 #include "BlasterPlayerController.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bPingTooHigh);
@@ -41,11 +42,16 @@ public:
 	float SingleTripTime = 0.f;
 
 	FHighPingDelegate HighPingDelegate;
+
+	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
 	
 protected:
 	virtual void BeginPlay() override;
 	void SetHUDTime();
 	void PollInit();
+
+	// 输入
+	virtual void SetupInputComponent() override;
 
 	/*
 	 * 同步客户端与服务器上的时间
@@ -77,10 +83,26 @@ protected:
 	void StopHighPingWarning();
 	void CheckPing(float DeltaTime);
 
+	void ShowReturnToMainMenu();
+
+	UFUNCTION(Client, Reliable)
+	void ClientElimAnnouncement(APlayerState* Attacker, APlayerState* Victim);
+
 private:
 	UPROPERTY()
 	class ABlasterHUD* BlasterHUD;
 
+	/*
+	 * 返回主菜单
+	 */
+	UPROPERTY(EditAnywhere, Category=HUD)
+	TSubclassOf<class UUserWidget> ReturnToMainMenuWidget;
+
+	UPROPERTY()
+	class UReturnToMainMenu* ReturnToMainMenu;
+
+	bool bReturnToMainMenuOpen = false;
+	
 	float MatchTime = 0.f;
 	float WarmupTime = 0.f;
 	float CooldownTime = 0.f;

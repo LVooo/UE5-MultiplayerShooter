@@ -11,6 +11,8 @@
 #include "GameFramework/Character.h"
 #include "BlasterCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
+
 UCLASS(config=Game)
 class ABlasterCharacter : public ACharacter, public IInteractWithCrosshairsInterface
 {
@@ -36,9 +38,9 @@ public:
 	// 为了在simulated客户端禁止rootbone
 	virtual void OnRep_ReplicatedMovement() override;
 
-	void Elim();
+	void Elim(bool bPlayerLeftGame);
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastElim();
+	void MulticastElim(bool bPlayerLeftGame);
 	virtual void Destroyed() override;
 
 	UPROPERTY(Replicated)
@@ -57,6 +59,17 @@ public:
 	TMap<FName, class UBoxComponent*> HitCollisionBoxes;
 
 	bool bFinishedSwapping = false;
+
+	UFUNCTION(Server, Reliable)
+	void ServerLeaveGame();
+
+	FOnLeftGame OnLeftGame;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastGainedTheLead();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastLostTheLead();
 
 protected:
 	virtual void BeginPlay() override;
@@ -258,6 +271,8 @@ private:
 
 	void ElimTimerFinished();
 
+	bool bLeftGame = false;
+
 	/*
 	 * 溶解效果
 	 */
@@ -293,6 +308,15 @@ private:
 	class USoundCue* ElimBotSound;
 
 	class ABlasterPlayerState* BlasterPlayerState;
+
+	/*
+	 * 胜者皇冠
+	 */
+	UPROPERTY(EditAnywhere)
+	class UNiagaraSystem* CrownSystem;
+
+	UPROPERTY()
+	class UNiagaraComponent* CrownComponent;
 
 	/*
 	 * 手榴弹

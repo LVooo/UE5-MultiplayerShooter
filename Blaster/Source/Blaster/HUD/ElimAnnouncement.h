@@ -4,23 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Announcement.generated.h"
+#include "ElimAnnouncement.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class BLASTER_API UAnnouncement : public UUserWidget
+class BLASTER_API UElimAnnouncement : public UUserWidget
 {
 	GENERATED_BODY()
-
 public:
-	UPROPERTY(meta=(BindWidget))
-	class UTextBlock* WarmupTime;
+	void SetElimAnnouncementText(FString AttackerName, FString VictimName);
 
 	UPROPERTY(meta=(BindWidget))
-	UTextBlock* AnnouncementText;
+	class UHorizontalBox* AnnouncementBox;
 
 	UPROPERTY(meta=(BindWidget))
-	UTextBlock* InfoText;
+	class UTextBlock* AnnouncementText;
 };
