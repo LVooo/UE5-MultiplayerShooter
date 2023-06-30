@@ -777,8 +777,10 @@ bug：多次碰撞Box盒状体没有伤害反馈
 霰弹枪射出的子弹数和正常伤害值与爆头伤害值在这里显得极为重要，深刻体现数值策划的重要性；  
 对于使用了服务器倒带算法的武器来说，判断是否爆头则更加清晰，因为我们用了盒状体（头部和身体）；
 
+---
 
-## 12. 团队
+# 更多游戏模式
+## 12. 团队模式
 ### 1. 团队类型
 新建头文件Team.h用来存储团队类型的枚举类型，里面分别是红队、蓝队和没有队伍；  
 在PlayerState头文件中新增Team类型变量（replicated，因为需要在客户端知道玩家是属于哪个队伍的，并且每个队伍有自己的颜色）并设置初始值为没有队伍，构建他的get，set函数；  
@@ -809,3 +811,58 @@ bug：多次碰撞Box盒状体没有伤害反馈
 新建布尔值变量bShowTeamScores并添加它对应的Notify函数用来判断是否使用了TeamsGameMode，如果使用了就初始化团队分数HUD，否则就隐藏；  
 给`OnMatchStateSet`和`HandleMatchHasStarted`函数增加参数bTeamsMatch，在BlasterGameMode的`OnMatchStateSet()`函数中调用时，将这里新增的bTeamsMatch传进去（TeamsGameMode初始化时设置改值为true）判断；  
 更新则在BlasterGameState中，针对红队得分和蓝队得分各有一个函数，分别对分数进行增加，分数有对应的Notify函数用来传播到客户端，并且这里可以直接调用世界当中的第一个PlayerController并通过它来访问HUD进行更新；  
+
+Match结束时显示获胜队伍HUD：  
+通过在`HandleCooldown()`函数中判断是否现实团队得分的布尔值来给InfoTextString赋值，如果是团队得分则从GameState中获取分数判断获胜队伍显示在Announcement HUD的Text当中，否则的话就从TopPlayers的数组中获得得分最高玩家显示信息；
+
+
+### 13. 夺旗模式
+### 1. 旗帜类
+新增Flag旗帜类，继承自Weapon武器类，因为旗帜的Mesh是Static Mesh而不是Skeletal Mesh，它需要在自己的类中新建变量并初始化，附着AreaSphere和PickupWidget；并在武器类型类中添加旗帜类  
+对于每个队伍有不同颜色的旗帜，创建新的材质，给他们的Emissive Color更改成红蓝颜色即可；  
+在Combat组件类中添加是否装备旗帜变量，在Character人物类中添加函数来调用Combat中该变量判断是否手握旗帜，在人物蓝图类中添加该变量的bool值，通过人物类的函数设置该值；  
+在人物动画蓝图中添加手握旗帜的动画动作，加入到cached pose中，通过上述动画蓝图中是否手握旗帜的变量判断是否切换到该姿势；  
+
+### 2. 拾取旗帜
+在人物骨骼的左手上添加旗帜的socket，在Combat组件类中添加将旗帜附着到左手上的函数，传入旗帜类型；  
+Combat组件类中将bHoldingTheFlag设置为replicated，并设置它对应的RepNotify函数，该函数中将人物动作设置为下蹲；  
+在装备武器时进行判断，如果要装备的武器类型是旗帜时，我们就将bHoldingTheFlag设为true（此时RepNotify函数通知客户端下蹲），将旗帜附着到左手上，设置武器状态，设置武器的Owner；  
+在人物角色类的Tick函数中的原地旋转函数中判断，如果组件类中的bHoldingTheFlag为true的话，就开启角色的旋转并设置旋转类型为不旋转；  
+
+### 3. 手握旗帜时的设置
+旗手负担：  
+为了给旗手增加负担，我们让他在手握旗帜时仅能蹲伏前进，此时我们禁用改名玩家的所有其他运动包括跳跃、下蹲、射击、瞄准等；  
+在Character类每一个按键按下时的函数中判断，如果当前Combat组件类当中的bHoldingTheFlag为true的话就提前返回；
+
+扔掉旗帜：  
+在旗帜类中重写Weapon武器类中的Dropped，OnDropped和OnEquipped函数，删去不必要的部分，将武器的Mesh改为FlashMesh即可；  
+在Combat组件类中添加旗帜武器变量，并在装备武器函数中给它赋值；  
+在人物类的扔掉或销毁武器中判断，如果发现Combat组件类中的旗帜武器变量已经被赋值的话就调用旗帜类的Dropped函数（放在所有武器后判断）
+
+团队旗帜：  
+为了满足只有同一个队伍的人才能触发代表对面队伍颜色的旗帜，我们在武器类中加入Team属性，给旗帜武器类型分配队伍；  
+在人物类中新建获得队伍的函数，在该函数中通过获取PlayerState来获取队伍；  
+在武器类的Overlap函数中判断，如果是不同队伍的角色和旗帜类型则提前返回，如果是已经手握旗帜的话也提前返回，为了不触发其他的拾取widget；  
+
+### 4. 团队模式出生点
+为了让不同队伍的玩家出生在两边不同的地点，我们创建新的团队模式玩家出生地点类，继承自playerstart，在里面添加团队类型变量；  
+在Character角色类中添加设置出生地点函数，在PollInit函数中进行调用，该函数中进行判断，如果PlayerState中没有队伍类型则返回，否则的话类似Respawn函数：  
+- `TArray<AActor*> PlayerStarts`创建角色出生点
+- 使用`UGameplayStatics::GetAllActorsOfClass`来获得地点
+- `TArray<ATeamPlayerStart*> TeamPlayerStarts`创建团队出生点
+- 遍历PlayerStarts，如果能Cast到ATeamPlayerStart就添加到团队出生点数组中
+- 遍历团队出生点，RandRange在其中按数量随机选取，设置出生地点
+
+### 5. 夺旗游戏模式
+该游戏模式为若蓝方夺取红方棋子到达指定蓝方区域，则蓝队加一分；反之亦然；  
+首先创建继承自TeamsGameMode的夺旗GameMode，在其中重写PlayerElimed函数（为了继承自父父BlasterGameMode中角色被击杀的效果而不是父类TeamsGameMode的）；添加`FlagCaptured(AFlag* Flag, AFlagZone* Zone)`，因为FlagZoom类中有一个标明该区域是蓝队点还是红队点的变量Team类型，所以可以通过获得该区域的Team判断是哪一对，再调用BlasterGameState类中的加分函数，为对应队伍增加分数；  
+在Flag旗帜类中添加新的变量初始位置，并在BeginPlay中设置给其赋值（为了重置时回到初始位置），在装备时需要设置碰撞类型为QueryOnly并设置对WoldDynamic为Overlap（为了与Zone发生碰撞检测）；  
+添加重置旗帜函数，在其中改变人物角色的状态，分离旗帜，重启碰撞类型，设置所有者为空，最后设置位置为初始位置；  
+在FlagZone类中重写Overlap函数，添加Zone的Sphere，开始时绑定该sphere和overlap函数，发生重叠时检验如果碰撞旗帜的类型与Zone的旗帜类型不符，则证明应该加分，调用夺旗GameMode中的得分函数并重置产生碰撞的旗帜的位置；  
+
+### 6. 模式选择
+在插件中的Menu菜单Widget中增加三个游戏模式类型的选项，并在蓝图中为其设置对应的值；  
+值从MultiplayerSesson的widget类中获取，连接人数以及游戏模式类型；  
+在MultiplayerSessonSubsystem类中添加想要的连接人数可匹配模式，在CreateSession函数中赋值；  
+在LobbyGameMode中获得游戏实例，在通过游戏实例获得MultiplayerSessonSubsystem，比较参玩家人数，再按照获得的游戏类型传送到对应地图当中；
+
