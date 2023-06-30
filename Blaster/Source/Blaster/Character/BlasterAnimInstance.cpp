@@ -29,7 +29,7 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	Velocity.Z = 0.f; // 在平面中只需要x和y轴分量，忽略垂直方向的分量
 	Speed = Velocity.Size(); // 计算速度向量的长度，即速度大小
 
-		bIsInAir =  BlasterCharacter->GetCharacterMovement()->IsFalling();
+	bIsInAir =  BlasterCharacter->GetCharacterMovement()->IsFalling();
 	bIsAccelerating = BlasterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f ? true : false;
 	bWeaponEquipped = BlasterCharacter->IsWeaponEquipped();
 	EquippedWeapon = BlasterCharacter->GetEquippedWeapon();
@@ -38,6 +38,7 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	TurningInPlace = BlasterCharacter->GetTurningInPlace();
 	bRotateRootBone = BlasterCharacter->ShouldRotateRootBone();
 	bElimmed = BlasterCharacter->isElimed();
+	bHoldingTheFlag = BlasterCharacter->IsHoldingTheFlag();
 
 	// Offset Yaw for Strafing
 	FRotator AnimRotation = BlasterCharacter->GetBaseAimRotation();
