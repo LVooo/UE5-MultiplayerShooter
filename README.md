@@ -743,7 +743,7 @@ bug：多次碰撞Box盒状体没有伤害反馈
 游戏中很多重要的数据比如弹药，生命值，伤害等都放在了服务端进行判断，加上WithValidation可以有效防止客户端篡改数据，且客户端和服务端的同一个类的变量通常具有不同的内存地址；  
 
 
-## 11. 更多多人游戏特色
+## 11. 其他多人游戏特色
 ### 1. 返回主菜单
 添加新的Widget用来点击`Esc`退出键时弹出返回到主菜单按钮；  
 初始化时要设置它为Visible并且Focusable，调用PlayerController用来设置输入模式是UI并显示鼠标；  
@@ -776,3 +776,36 @@ bug：多次碰撞Box盒状体没有伤害反馈
 并且可以用`AddUnique(HitPair.Key)`将人物角色加到总的受击角色当中供服务器倒带算法使用；  
 霰弹枪射出的子弹数和正常伤害值与爆头伤害值在这里显得极为重要，深刻体现数值策划的重要性；  
 对于使用了服务器倒带算法的武器来说，判断是否爆头则更加清晰，因为我们用了盒状体（头部和身体）；
+
+
+## 12. 团队
+### 1. 团队类型
+新建头文件Team.h用来存储团队类型的枚举类型，里面分别是红队、蓝队和没有队伍；  
+在PlayerState头文件中新增Team类型变量（replicated，因为需要在客户端知道玩家是属于哪个队伍的，并且每个队伍有自己的颜色）并设置初始值为没有队伍，构建他的get，set函数；  
+在GameState中管理每个队伍的得分，在头文件中新建两个数组，分别是红队和蓝队，再分别添加两个队伍的得分数，都有各自的Rep_Notify函数，因为需要传播到客户端；  
+
+### 2. 团队的GameMode
+新建继承自BlasterGameMode的TeamGameMode类；  
+重写其中的`HandleMatchHasStarted()`，在其中获得BlasterGameState类用于获取其中的玩家状态集合，然后便利这个集合获取每个PlayerState，判断该名玩家是否还没有队伍，如果蓝队人数 >= 红队，则将该名角色放到红队当中（BlasterGameState中的红队数组）并设置该名玩家的PlayerState的队伍为红队，反之则加入到蓝队当中；  
+重写`PostLogin(APlayerController* NewPlayer)`，通过传进来的PlayerController获得他的PlayerState，与上述同样的方法，不过不需要遍历数组，添加单个角色的状态即可；  
+重写`LogOut(AController* Exiting)`，通过传进来的Exiting获取要退出玩家的PlayerState，通过BlasterGameState中的蓝队和红队数组来判断这个要退出玩家的PlayerState在不在其中，如果在其中的话就删除该名玩家；
+
+### 3. 设置队伍专属颜色
+倒入红色系的角色mesh材质，构建红色系的溶解材质；  
+在人物类中新增这几个新的材质变量实例；  
+人物类中新增设置人物材质颜色的函数，根据传进来的参数Team来区分该名角色属于哪个队伍，应该把Mesh改为对应的材质，并设置对应的溶解材质；  
+在PollInit中设置完PlayerState就调用该函数，传入PlayerState中的Team变量设置颜色；  
+在PlayerState类中为Team添加对应的Notify函数，用来从服务端传播到客户端，在SetTeam函数中设置Team变量，并调用Character类中的设置队伍颜色函数，在Team的Rep_Notify函数中同样调用该函数；
+
+### 4. 阻止友军攻击
+为了方便使用BlasterGameMode并判断，我们将其存储在Character类当中，并使用三元表达式判断赋值；  
+在BlasterGameMode中新建伤害计算函数，传入攻击者、受击者、伤害值，并设置为虚函数，在这里仅返回传进来的伤害值；  
+但是在TeamsGameMode中我们重写BlasterGameMode的伤害计算函数，并通过Controller获得攻击者和受击者的PlayerState，再得到他们各自的Team，判断是否在同一个Team，如果在一个队的话返回值就为0，否则就是传进来的伤害值；  
+在Character类的ReceiveDamage中首先通过BlasterGameMode调用伤害计算函数给伤害赋值，因为**多态性**，这里的GameMode会使用TeamsGameMode的伤害计算函数，尽管我们获得的是BlasterGameMode（TeamsGameMode的父类）
+
+### 5. 团队分数HUD显示
+在CharacterOverlay的Widget中加入红蓝两队分数Text，并绑定在C++类当中；  
+在PlayerController中新建初始化团队分数HUD函数、隐藏团队分数HUD函数、设置红方HUD分数函数、设置蓝方HUD分数函数；隐藏时将其置空即`FText()`即可，初始化时均设置为0；  
+新建布尔值变量bShowTeamScores并添加它对应的Notify函数用来判断是否使用了TeamsGameMode，如果使用了就初始化团队分数HUD，否则就隐藏；  
+给`OnMatchStateSet`和`HandleMatchHasStarted`函数增加参数bTeamsMatch，在BlasterGameMode的`OnMatchStateSet()`函数中调用时，将这里新增的bTeamsMatch传进去（TeamsGameMode初始化时设置改值为true）判断；  
+更新则在BlasterGameState中，针对红队得分和蓝队得分各有一个函数，分别对分数进行增加，分数有对应的Notify函数用来传播到客户端，并且这里可以直接调用世界当中的第一个PlayerController并通过它来访问HUD进行更新；  
